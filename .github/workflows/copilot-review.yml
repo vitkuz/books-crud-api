@@ -27,13 +27,14 @@ jobs:
         id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
         run: |
-          PR_NUMBER=${{ github.event.issue.number }}
-          HEAD_REF=$(gh pr view "$PR_NUMBER" \
-            --repo ${{ github.repository }} \
+          HEAD_REF=$(gh pr view "$PR_ISSUE_NUMBER" \
+            --repo "$REPO" \
             --json headRefName \
             --jq .headRefName)
-          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "number=$PR_ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
           echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v6

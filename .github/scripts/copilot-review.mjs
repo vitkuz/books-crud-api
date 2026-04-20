@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const { OPENAI_API_KEY, REPO, PR_NUMBER } = process.env;
@@ -10,14 +10,23 @@ if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is required');
 if (!REPO) throw new Error('REPO is required');
 if (!PR_NUMBER) throw new Error('PR_NUMBER is required');
 
-const sh = (cmd) =>
-  execSync(cmd, { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+if (!/^[\w.-]+\/[\w.-]+$/.test(REPO)) {
+  throw new Error(`REPO does not look like "owner/name": ${REPO}`);
+}
+if (!/^\d+$/.test(PR_NUMBER)) {
+  throw new Error(`PR_NUMBER must be a positive integer, got: ${PR_NUMBER}`);
+}
+
+const run = (file, args) =>
+  execFileSync(file, args, { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+
+const gh = (args) => run('gh', args);
 
 const pr = JSON.parse(
-  sh(`gh pr view ${PR_NUMBER} --repo ${REPO} --json title,body,headRefName,baseRefName`),
+  gh(['pr', 'view', PR_NUMBER, '--repo', REPO, '--json', 'title,body,headRefName,baseRefName']),
 );
 
-let diff = sh(`gh pr diff ${PR_NUMBER} --repo ${REPO}`);
+let diff = gh(['pr', 'diff', PR_NUMBER, '--repo', REPO]);
 let truncated = false;
 if (diff.length > MAX_DIFF_CHARS) {
   diff = diff.slice(0, MAX_DIFF_CHARS);
@@ -105,7 +114,24 @@ if (!resp.ok) {
 }
 
 const data = await resp.json();
-const review = JSON.parse(data.choices[0].message.content);
+const choice = data.choices?.[0];
+const raw = choice?.message?.content;
+if (!raw) {
+  console.error('Model returned no content.', {
+    finish_reason: choice?.finish_reason,
+    refusal: choice?.message?.refusal,
+  });
+  process.exit(1);
+}
+
+let review;
+try {
+  review = JSON.parse(raw);
+} catch (err) {
+  console.error('Model content was not valid JSON:', err.message);
+  console.error('Raw content:', raw);
+  process.exit(1);
+}
 console.log(`Model returned: ${review.comments.length} inline comments`);
 
 const summary = [
@@ -117,7 +143,7 @@ const summary = [
 
 const postSummaryOnly = () => {
   writeFileSync('/tmp/summary.md', summary);
-  sh(`gh pr comment ${PR_NUMBER} --repo ${REPO} --body-file /tmp/summary.md`);
+  gh(['pr', 'comment', PR_NUMBER, '--repo', REPO, '--body-file', '/tmp/summary.md']);
   console.log('Posted summary-only comment');
 };
 
@@ -139,10 +165,16 @@ const reviewBody = {
 writeFileSync('/tmp/review.json', JSON.stringify(reviewBody));
 
 try {
-  sh(
-    `gh api --method POST -H "Accept: application/vnd.github+json" ` +
-      `/repos/${REPO}/pulls/${PR_NUMBER}/reviews --input /tmp/review.json`,
-  );
+  gh([
+    'api',
+    '--method',
+    'POST',
+    '-H',
+    'Accept: application/vnd.github+json',
+    `/repos/${REPO}/pulls/${PR_NUMBER}/reviews`,
+    '--input',
+    '/tmp/review.json',
+  ]);
   console.log('Posted review with inline comments');
 } catch (err) {
   console.warn('Inline review API rejected the request; falling back to summary comment.');
@@ -157,5 +189,5 @@ try {
     ...review.comments.map((c) => `- **\`${c.path}:${c.line}\`** — ${c.body}`),
   ].join('\n');
   writeFileSync('/tmp/fallback.md', fallback);
-  sh(`gh pr comment ${PR_NUMBER} --repo ${REPO} --body-file /tmp/fallback.md`);
+  gh(['pr', 'comment', PR_NUMBER, '--repo', REPO, '--body-file', '/tmp/fallback.md']);
 }
