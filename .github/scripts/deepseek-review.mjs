@@ -128,6 +128,7 @@ review.comments = review.comments.filter(
     c &&
     typeof c.path === 'string' &&
     Number.isInteger(c.line) &&
+    c.line > 0 &&
     typeof c.body === 'string' &&
     c.body.trim().length > 0,
 );
