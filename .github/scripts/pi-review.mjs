@@ -102,14 +102,16 @@ const prompt = [
   '```',
   truncated ? '\n(NOTE: diff was truncated for review.)' : '',
   '',
-  'Your FINAL message must be exactly a JSON object with this shape, and nothing else:',
+  'OUTPUT CONTRACT — read carefully:',
+  'After you finish any investigation with tools, your FINAL assistant message must be a single JSON object and NOTHING ELSE.',
+  'The first character of the final message must be `{` and the last must be `}`. No markdown fences. No prose before or after. No "Here is the review:" preamble. No bullet points. If you need to think, do it in tool calls, not in the final message.',
+  'Exact shape:',
   '{',
   '  "summary": "<one-paragraph overall review>",',
   '  "comments": [',
   '    { "path": "<file path>", "line": <integer>, "body": "<comment text>" }',
   '  ]',
   '}',
-  'Do not wrap the JSON in markdown code fences. Do not include any prose before or after the JSON.',
   'If the PR is clean, return { "summary": "...", "comments": [] }.',
 ].join('\n');
 
@@ -141,21 +143,41 @@ if (piResult.status !== 0) {
 
 let raw = piResult.stdout.trim();
 
-const fenceMatch = raw.match(/^```(?:json)?\s*\n([\s\S]*?)\n```$/);
+const fenceMatch = raw.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
 if (fenceMatch) raw = fenceMatch[1].trim();
+
+const firstBrace = raw.indexOf('{');
+const lastBrace = raw.lastIndexOf('}');
+const candidate = firstBrace !== -1 && lastBrace > firstBrace
+  ? raw.slice(firstBrace, lastBrace + 1)
+  : '';
+
+const postPlainFallback = (reason, body) => {
+  const fallback = [
+    `## 🤖 pi agent review — ${LABEL} (${PI_MODEL})`,
+    '',
+    `_Note: ${reason}. Posting the agent's raw output as a single comment — no inline annotations this run._`,
+    '',
+    body.slice(0, 60000),
+  ].join('\n');
+  writeFileSync('/tmp/fallback.md', fallback);
+  gh(['pr', 'comment', PR_NUMBER, '--repo', REPO, '--body-file', '/tmp/fallback.md']);
+};
 
 let review;
 try {
-  review = JSON.parse(raw);
+  review = JSON.parse(candidate || raw);
 } catch (err) {
-  console.error('pi output was not valid JSON:', err.message);
-  console.error('Raw stdout (first 2000 chars):\n', raw.slice(0, 2000));
-  process.exit(1);
+  console.warn('pi output was not valid JSON:', err.message);
+  console.warn('Raw stdout (first 2000 chars):\n', raw.slice(0, 2000));
+  postPlainFallback('pi returned free-form text instead of structured JSON', raw);
+  process.exit(0);
 }
 
 if (typeof review.summary !== 'string' || !Array.isArray(review.comments)) {
-  console.error('pi output did not match expected shape:', review);
-  process.exit(1);
+  console.warn('pi output did not match expected shape:', review);
+  postPlainFallback('pi response shape was invalid', raw);
+  process.exit(0);
 }
 
 review.comments = review.comments.filter(
