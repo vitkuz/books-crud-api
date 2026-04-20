@@ -1,0 +1,52 @@
+name: DeepSeek PR Review
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/deepseek-review') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: React to trigger comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
+            -f content=eyes
+
+      - name: Resolve PR head ref
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          HEAD_REF=$(gh pr view "$PR_ISSUE_NUMBER" \
+            --repo "$REPO" \
+            --json headRefName \
+            --jq .headRefName)
+          echo "number=$PR_ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.pr.outputs.head_ref }}
+          fetch-depth: 1
+
+      - name: Run DeepSeek review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          MODEL: deepseek-chat
+        run: node .github/scripts/deepseek-review.mjs
