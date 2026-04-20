@@ -1,5 +1,6 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
 import logger from './shared/utils/logger';
+import { authorsRouter } from './features/authors';
 import { booksRouter } from './features/books';
 
 export const createApp = (): Application => {
@@ -14,6 +15,7 @@ export const createApp = (): Application => {
 
   app.get('/health', (_req: Request, res: Response): Response => res.status(200).json({ ok: true }));
 
+  app.use('/authors', authorsRouter);
   app.use('/books', booksRouter);
 
   app.use((_req: Request, res: Response): Response => res.status(404).json({ error: 'NotFound' }));

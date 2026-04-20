@@ -1,20 +1,25 @@
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../../shared/utils/logger';
+import { findAuthorById } from '../../authors/authors.store';
 import { insertBook } from '../books.store';
-import { Book, CreateBookPayload } from '../books.types';
+import { Book, CreateBookPayload, CreateBookResult } from '../books.types';
 
-export const createBook = (payload: CreateBookPayload): Book => {
+export const createBook = (payload: CreateBookPayload): CreateBookResult => {
   logger.debug('create-book.service start', { payload });
+  if (!findAuthorById(payload.authorId)) {
+    logger.debug('create-book.service author-not-found', { authorId: payload.authorId });
+    return { ok: false, error: 'AUTHOR_NOT_FOUND' };
+  }
   const now: string = new Date().toISOString();
   const book: Book = {
     id: uuidv4(),
     title: payload.title,
-    author: payload.author,
+    authorId: payload.authorId,
     year: payload.year,
     createdAt: now,
     updatedAt: now,
   };
   const inserted: Book = insertBook(book);
   logger.debug('create-book.service success', { id: inserted.id });
-  return inserted;
+  return { ok: true, book: inserted };
 };
