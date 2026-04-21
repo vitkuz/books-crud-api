@@ -23,6 +23,19 @@ jobs:
             /repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
             -f content=eyes
 
+      - name: Post job link
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/$REPO/issues/$PR_ISSUE_NUMBER/comments" \
+            -f body="▶️ \`/pi-deepseek-review\` running — [view job logs]($RUN_URL)"
+
       - name: Resolve PR head ref
         id: pr
         env:
