@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ZodError } from 'zod';
 import * as categoriesService from '../services';
 import {
+  batchCategoriesSchema,
   categoryIdParamSchema,
   createCategorySchema,
   updateCategorySchema,
@@ -27,6 +28,14 @@ export const postCategory = (req: Request, res: Response): Response => {
 
 export const getCategories = (_req: Request, res: Response): Response => {
   const categories: Category[] = categoriesService.listCategories();
+  return res.status(200).json(categories);
+};
+
+export const postCategoriesBatch = (req: Request, res: Response): Response => {
+  const parsed: ReturnType<typeof batchCategoriesSchema.safeParse> =
+    batchCategoriesSchema.safeParse(req.body);
+  if (!parsed.success) return badRequest(res, parsed.error);
+  const categories: Category[] = categoriesService.batchCategories(parsed.data.ids);
   return res.status(200).json(categories);
 };
 

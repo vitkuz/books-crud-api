@@ -73,42 +73,48 @@ type BookResponse = {
 
 ### Authors
 
-| Method | Path            | Body          | Returns         |
-| ------ | --------------- | ------------- | --------------- |
-| GET    | `/authors`      | —             | `Author[]`      |
-| GET    | `/authors/:id`  | —             | `Author`        |
-| POST   | `/authors`      | `{ name }`    | `Author` (201)  |
-| PUT    | `/authors/:id`  | `{ name? }`   | `Author`        |
-| DELETE | `/authors/:id`  | —             | 204             |
+| Method | Path                 | Body                | Returns         |
+| ------ | -------------------- | ------------------- | --------------- |
+| GET    | `/authors`           | —                   | `Author[]`      |
+| GET    | `/authors/:id`       | —                   | `Author`        |
+| POST   | `/authors`           | `{ name }`          | `Author` (201)  |
+| POST   | `/authors/batch`     | `{ ids: string[] }` | `Author[]`      |
+| PUT    | `/authors/:id`       | `{ name? }`         | `Author`        |
+| DELETE | `/authors/:id`       | —                   | 204             |
 
 `DELETE /authors/:id` returns **409 Conflict** if any book references the author.
+`POST /authors/batch` silently skips unknown ids; enforces 1 ≤ `ids.length` ≤ 100.
 
 ### Categories
 
-| Method | Path                | Body          | Returns           |
-| ------ | ------------------- | ------------- | ----------------- |
-| GET    | `/categories`       | —             | `Category[]`      |
-| GET    | `/categories/:id`   | —             | `Category`        |
-| POST   | `/categories`       | `{ name }`    | `Category` (201)  |
-| PUT    | `/categories/:id`   | `{ name? }`   | `Category`        |
-| DELETE | `/categories/:id`   | —             | 204               |
+| Method | Path                   | Body                | Returns           |
+| ------ | ---------------------- | ------------------- | ----------------- |
+| GET    | `/categories`          | —                   | `Category[]`      |
+| GET    | `/categories/:id`      | —                   | `Category`        |
+| POST   | `/categories`          | `{ name }`          | `Category` (201)  |
+| POST   | `/categories/batch`    | `{ ids: string[] }` | `Category[]`      |
+| PUT    | `/categories/:id`      | `{ name? }`         | `Category`        |
+| DELETE | `/categories/:id`      | —                   | 204               |
 
 `DELETE /categories/:id` returns **409 Conflict** if any book still references the category.
+`POST /categories/batch` silently skips unknown ids; enforces 1 ≤ `ids.length` ≤ 100.
 
 ### Books
 
-| Method | Path          | Body                                                   | Returns              |
-| ------ | ------------- | ------------------------------------------------------ | -------------------- |
-| GET    | `/books`      | —                                                      | `BookResponse[]`     |
-| GET    | `/books/:id`  | —                                                      | `BookResponse`       |
-| POST   | `/books`      | `{ title, authorId, categoryIds?, year }`              | `BookResponse` (201) |
-| PUT    | `/books/:id`  | partial `{ title?, authorId?, categoryIds?, year? }`   | `BookResponse`       |
-| DELETE | `/books/:id`  | —                                                      | 204                  |
+| Method | Path             | Body                                                   | Returns              |
+| ------ | ---------------- | ------------------------------------------------------ | -------------------- |
+| GET    | `/books`         | —                                                      | `BookResponse[]`     |
+| GET    | `/books/:id`     | —                                                      | `BookResponse`       |
+| POST   | `/books`         | `{ title, authorId, categoryIds?, year }`              | `BookResponse` (201) |
+| POST   | `/books/batch`   | `{ ids: string[] }`                                    | `BookResponse[]`     |
+| PUT    | `/books/:id`     | partial `{ title?, authorId?, categoryIds?, year? }`   | `BookResponse`       |
+| DELETE | `/books/:id`     | —                                                      | 204                  |
 
 - `categoryIds` is optional on POST (defaults to `[]`). Duplicates are silently deduped.
 - On PUT, omitting `categoryIds` leaves existing categories unchanged; sending `[]` clears them.
 - Returns **400 InvalidAuthor** if `authorId` doesn't reference an existing author.
-- Returns **400 InvalidCategoryIds** (with a `missingIds` array) if any `categoryIds` entry doesn't reference an existing category.
+- Returns **400 InvalidCategoryIds** if any `categoryIds` entry doesn't reference an existing category.
+- `POST /books/batch` silently skips unknown ids; enforces 1 ≤ `ids.length` ≤ 100. Response is already populated with `author` and `categories`.
 
 ### Other
 

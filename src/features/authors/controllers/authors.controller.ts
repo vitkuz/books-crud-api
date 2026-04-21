@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import * as authorsService from '../services';
 import {
   authorIdParamSchema,
+  batchAuthorsSchema,
   createAuthorSchema,
   updateAuthorSchema,
 } from '../authors.schema';
@@ -28,6 +29,15 @@ export const postAuthor = (req: Request, res: Response): Response => {
 
 export const getAuthors = (_req: Request, res: Response): Response => {
   const authors: Author[] = authorsService.listAuthors();
+  return res.status(200).json(authors);
+};
+
+export const postAuthorsBatch = (req: Request, res: Response): Response => {
+  const parsed: ReturnType<typeof batchAuthorsSchema.safeParse> = batchAuthorsSchema.safeParse(
+    req.body,
+  );
+  if (!parsed.success) return badRequest(res, parsed.error);
+  const authors: Author[] = authorsService.batchAuthors(parsed.data.ids);
   return res.status(200).json(authors);
 };
 

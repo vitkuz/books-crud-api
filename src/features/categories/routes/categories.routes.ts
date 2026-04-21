@@ -5,6 +5,7 @@ const categoriesRouter: Router = Router();
 
 categoriesRouter.get('/', categoriesController.getCategories);
 categoriesRouter.post('/', categoriesController.postCategory);
+categoriesRouter.post('/batch', categoriesController.postCategoriesBatch);
 categoriesRouter.get('/:id', categoriesController.getCategoryById);
 categoriesRouter.put('/:id', categoriesController.putCategory);
 categoriesRouter.delete('/:id', categoriesController.deleteCategoryById);

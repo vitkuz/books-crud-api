@@ -4,4 +4,5 @@ export {
   getBookById,
   putBook,
   deleteBookById,
+  postBooksBatch,
 } from './books.controller';

@@ -12,3 +12,7 @@ export const updateCategorySchema = createCategorySchema.partial().refine(
 export const categoryIdParamSchema = z.object({
   id: z.string().uuid(),
 });
+
+export const batchCategoriesSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1).max(100),
+});
