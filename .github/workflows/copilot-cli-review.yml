@@ -68,5 +68,5 @@ jobs:
           COPILOT_PAT: ${{ secrets.COPILOT_PAT }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
-          MODEL: claude-opus-4.6
+          MODEL: auto
         run: node .github/scripts/copilot-cli-review.mjs
