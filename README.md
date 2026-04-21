@@ -1,6 +1,6 @@
 # books-crud-api
 
-Minimal Books + Authors CRUD REST API built with TypeScript + Express, using in-memory storage (no database).
+Minimal Books + Authors + Categories CRUD REST API built with TypeScript + Express, using in-memory storage (no database).
 
 ## Stack
 
@@ -29,10 +29,17 @@ Server listens on `PORT` from `.env` (default 3000).
 
 ## Data Model
 
-`Book` references an `Author` by `authorId`. Book responses embed the full author object.
+A `Book` references an `Author` by `authorId` and 0..N categories by `categoryIds`. Book responses embed the full author and the list of populated categories.
 
 ```ts
 type Author = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type Category = {
   id: string;
   name: string;
   createdAt: string;
@@ -44,16 +51,18 @@ type Book = {
   id: string;
   title: string;
   authorId: string;
+  categoryIds: string[];
   year: number;
   createdAt: string;
   updatedAt: string;
 };
 
-// API response shape (author populated)
+// API response shape (author + categories populated)
 type BookResponse = {
   id: string;
   title: string;
   author: Author;
+  categories: Category[];
   year: number;
   createdAt: string;
   updatedAt: string;
@@ -64,27 +73,42 @@ type BookResponse = {
 
 ### Authors
 
-| Method | Path            | Body                 | Returns         |
-| ------ | --------------- | -------------------- | --------------- |
-| GET    | `/authors`      | —                    | `Author[]`      |
-| GET    | `/authors/:id`  | —                    | `Author`        |
-| POST   | `/authors`      | `{ name }`           | `Author` (201)  |
-| PUT    | `/authors/:id`  | `{ name? }`          | `Author`        |
-| DELETE | `/authors/:id`  | —                    | 204             |
+| Method | Path            | Body          | Returns         |
+| ------ | --------------- | ------------- | --------------- |
+| GET    | `/authors`      | —             | `Author[]`      |
+| GET    | `/authors/:id`  | —             | `Author`        |
+| POST   | `/authors`      | `{ name }`    | `Author` (201)  |
+| PUT    | `/authors/:id`  | `{ name? }`   | `Author`        |
+| DELETE | `/authors/:id`  | —             | 204             |
 
 `DELETE /authors/:id` returns **409 Conflict** if any book references the author.
 
+### Categories
+
+| Method | Path                | Body          | Returns           |
+| ------ | ------------------- | ------------- | ----------------- |
+| GET    | `/categories`       | —             | `Category[]`      |
+| GET    | `/categories/:id`   | —             | `Category`        |
+| POST   | `/categories`       | `{ name }`    | `Category` (201)  |
+| PUT    | `/categories/:id`   | `{ name? }`   | `Category`        |
+| DELETE | `/categories/:id`   | —             | 204               |
+
+`DELETE /categories/:id` returns **409 Conflict** if any book still references the category.
+
 ### Books
 
-| Method | Path          | Body                                      | Returns             |
-| ------ | ------------- | ----------------------------------------- | ------------------- |
-| GET    | `/books`      | —                                         | `BookResponse[]`    |
-| GET    | `/books/:id`  | —                                         | `BookResponse`      |
-| POST   | `/books`      | `{ title, authorId, year }`               | `BookResponse` (201)|
-| PUT    | `/books/:id`  | partial `{ title?, authorId?, year? }`    | `BookResponse`      |
-| DELETE | `/books/:id`  | —                                         | 204                 |
+| Method | Path          | Body                                                   | Returns              |
+| ------ | ------------- | ------------------------------------------------------ | -------------------- |
+| GET    | `/books`      | —                                                      | `BookResponse[]`     |
+| GET    | `/books/:id`  | —                                                      | `BookResponse`       |
+| POST   | `/books`      | `{ title, authorId, categoryIds?, year }`              | `BookResponse` (201) |
+| PUT    | `/books/:id`  | partial `{ title?, authorId?, categoryIds?, year? }`   | `BookResponse`       |
+| DELETE | `/books/:id`  | —                                                      | 204                  |
 
-`POST /books` and `PUT /books/:id` return **400 InvalidAuthor** if `authorId` doesn't match an existing author.
+- `categoryIds` is optional on POST (defaults to `[]`). Duplicates are silently deduped.
+- On PUT, omitting `categoryIds` leaves existing categories unchanged; sending `[]` clears them.
+- Returns **400 InvalidAuthor** if `authorId` doesn't reference an existing author.
+- Returns **400 InvalidCategoryIds** (with a `missingIds` array) if any `categoryIds` entry doesn't reference an existing category.
 
 ### Other
 
@@ -95,18 +119,25 @@ type BookResponse = {
 ## Quick smoke test
 
 ```bash
-# Create an author first
-AUTHOR=$(curl -s -X POST localhost:3000/authors \
+# Create an author and two categories
+AUTHOR_ID=$(curl -s -X POST localhost:3000/authors \
   -H 'content-type: application/json' \
-  -d '{"name":"Frank Herbert"}')
-AUTHOR_ID=$(echo "$AUTHOR" | jq -r .id)
+  -d '{"name":"Frank Herbert"}' | jq -r .id)
 
-# Create a book referencing that author
+CAT1_ID=$(curl -s -X POST localhost:3000/categories \
+  -H 'content-type: application/json' \
+  -d '{"name":"Science Fiction"}' | jq -r .id)
+
+CAT2_ID=$(curl -s -X POST localhost:3000/categories \
+  -H 'content-type: application/json' \
+  -d '{"name":"Classic"}' | jq -r .id)
+
+# Create a book in both categories
 curl -s -X POST localhost:3000/books \
   -H 'content-type: application/json' \
-  -d "{\"title\":\"Dune\",\"authorId\":\"$AUTHOR_ID\",\"year\":1965}"
+  -d "{\"title\":\"Dune\",\"authorId\":\"$AUTHOR_ID\",\"categoryIds\":[\"$CAT1_ID\",\"$CAT2_ID\"],\"year\":1965}"
 
-# List books (author is populated)
+# List books (author + categories populated)
 curl -s localhost:3000/books
 ```
 
@@ -127,11 +158,18 @@ src/
     │   ├── routes/
     │   ├── controllers/
     │   └── services/
+    ├── categories/
+    │   ├── categories.types.ts
+    │   ├── categories.schema.ts
+    │   ├── categories.store.ts
+    │   ├── routes/
+    │   ├── controllers/
+    │   └── services/
     └── books/
         ├── books.types.ts
         ├── books.schema.ts
         ├── books.store.ts
-        ├── books.utils.ts      # toBookResponse (populates author)
+        ├── books.utils.ts      # toBookResponse (populates author + categories)
         ├── routes/
         ├── controllers/
         └── services/
