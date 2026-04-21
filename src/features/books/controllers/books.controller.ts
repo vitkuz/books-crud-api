@@ -23,6 +23,13 @@ const badRequest = (res: Response, err: ZodError): Response =>
 const authorNotFound = (res: Response): Response =>
   res.status(400).json({ error: 'InvalidAuthor', message: 'authorId does not reference an existing author' });
 
+const invalidCategoryIds = (res: Response, missingIds: string[]): Response =>
+  res.status(400).json({
+    error: 'InvalidCategoryIds',
+    message: 'One or more categoryIds do not reference existing categories',
+    missingIds,
+  });
+
 export const postBook = (req: Request, res: Response): Response => {
   const parsed: ReturnType<typeof createBookSchema.safeParse> = createBookSchema.safeParse(
     req.body,
@@ -30,7 +37,11 @@ export const postBook = (req: Request, res: Response): Response => {
   if (!parsed.success) return badRequest(res, parsed.error);
   const payload: CreateBookPayload = parsed.data;
   const result: CreateBookResult = booksService.createBook(payload);
-  if (!result.ok) return authorNotFound(res);
+  if (!result.ok && result.error === 'AUTHOR_NOT_FOUND') return authorNotFound(res);
+  if (!result.ok && result.error === 'INVALID_CATEGORY_IDS') {
+    return invalidCategoryIds(res, result.missingIds);
+  }
+  if (!result.ok) return res.status(500).json({ error: 'InternalServerError' });
   const body: BookResponse = toBookResponse(result.book);
   return res.status(201).json(body);
 };
@@ -68,6 +79,9 @@ export const putBook = (req: Request, res: Response): Response => {
   }
   if (!result.ok && result.error === 'AUTHOR_NOT_FOUND') {
     return authorNotFound(res);
+  }
+  if (!result.ok && result.error === 'INVALID_CATEGORY_IDS') {
+    return invalidCategoryIds(res, result.missingIds);
   }
   if (!result.ok) return res.status(500).json({ error: 'InternalServerError' });
   const body: BookResponse = toBookResponse(result.book);
