@@ -6,7 +6,7 @@ on:
 
 jobs:
   review:
-    if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/review') }}
+    if: ${{ github.event.issue.pull_request && (startsWith(github.event.comment.body, '/review') || startsWith(github.event.comment.body, ' /review')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
