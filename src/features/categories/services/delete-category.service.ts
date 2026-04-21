@@ -9,7 +9,7 @@ export const deleteCategory = (id: string): DeleteCategoryResult => {
     logger.debug('delete-category.service not-found', { id });
     return { ok: false, error: 'CATEGORY_NOT_FOUND' };
   }
-  const hasBooks: boolean = findAllBooks().some(
+  const hasBooks = findAllBooks().some(
     (b: { categoryIds: string[] }): boolean => b.categoryIds.includes(id),
   );
   if (hasBooks) {

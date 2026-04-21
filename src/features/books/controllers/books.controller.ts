@@ -26,8 +26,7 @@ const authorNotFound = (res: Response): Response =>
 const invalidCategoryIds = (res: Response, missingIds: string[]): Response =>
   res.status(400).json({
     error: 'InvalidCategoryIds',
-    message: 'One or more categoryIds do not reference existing categories',
-    missingIds,
+    message: `One or more categoryIds do not reference existing categories: ${missingIds.join(', ')}`,
   });
 
 export const postBook = (req: Request, res: Response): Response => {

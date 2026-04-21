@@ -7,7 +7,7 @@ export const updateCategory = (
   payload: UpdateCategoryPayload,
 ): Category | undefined => {
   logger.debug('update-category.service start', { id, payload });
-  const now: string = new Date().toISOString();
+  const now = new Date().toISOString();
   const updated: Category | undefined = replaceCategory(id, { ...payload, updatedAt: now });
   if (!updated) {
     logger.debug('update-category.service not-found', { id });

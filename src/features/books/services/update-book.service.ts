@@ -23,8 +23,9 @@ export const updateBook = (id: string, payload: UpdateBookPayload): UpdateBookRe
       return { ok: false, error: 'INVALID_CATEGORY_IDS', missingIds };
     }
   }
-  const now: string = new Date().toISOString();
-  const patch: Partial<Book> = { ...payload, updatedAt: now };
+  const now = new Date().toISOString();
+  const { categoryIds: _rawCategoryIds, ...rest } = payload;
+  const patch: Partial<Book> = { ...rest, updatedAt: now };
   if (categoryIdsPatch !== undefined) patch.categoryIds = categoryIdsPatch;
   const updated: Book | undefined = replaceBook(id, patch);
   if (!updated) {
