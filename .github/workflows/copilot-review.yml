@@ -48,5 +48,5 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
-          MODEL: gpt-4.1
+          MODEL: gpt-5.4
         run: node .github/scripts/copilot-review.mjs
