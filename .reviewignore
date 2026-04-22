@@ -1,0 +1,33 @@
+# Generated / build artifacts
+dist/
+build/
+*.map
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# Test snapshots (generated)
+__snapshots__/
+*.snap
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# CI / GitHub metadata
+.github/workflows/*.yml
+dist/
