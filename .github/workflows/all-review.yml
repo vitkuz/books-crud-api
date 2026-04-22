@@ -93,6 +93,12 @@ jobs:
               MODEL: auto
               COPILOT_PAT: ${{ secrets.COPILOT_PAT }}
 
+          - name: Kimi
+            script: kimi-review.mjs
+            env:
+              MODEL: moonshot-v1-128k
+              MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
+
     name: Review — ${{ matrix.name }}
     steps:
       - uses: actions/checkout@v6
