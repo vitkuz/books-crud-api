@@ -4,4 +4,5 @@ export {
   getCategoryById,
   putCategory,
   deleteCategoryById,
+  postCategoriesBatch,
 } from './categories.controller';

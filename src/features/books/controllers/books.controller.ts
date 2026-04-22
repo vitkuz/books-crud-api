@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import logger from '../../../shared/utils/logger';
 import * as booksService from '../services';
 import {
+  batchBooksSchema,
   bookIdParamSchema,
   createBookSchema,
   updateBookSchema,
@@ -47,6 +48,16 @@ export const postBook = (req: Request, res: Response): Response => {
 
 export const getBooks = (_req: Request, res: Response): Response => {
   const books: Book[] = booksService.listBooks();
+  const body: BookResponse[] = books.map(toBookResponse);
+  return res.status(200).json(body);
+};
+
+export const postBooksBatch = (req: Request, res: Response): Response => {
+  const parsed: ReturnType<typeof batchBooksSchema.safeParse> = batchBooksSchema.safeParse(
+    req.body,
+  );
+  if (!parsed.success) return badRequest(res, parsed.error);
+  const books: Book[] = booksService.batchBooks(parsed.data.ids);
   const body: BookResponse[] = books.map(toBookResponse);
   return res.status(200).json(body);
 };

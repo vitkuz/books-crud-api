@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
-const { REPO, PR_NUMBER, GEMINI_API_KEY, GITHUB_TOKEN } = process.env;
-const MODEL = process.env.MODEL || 'gemini-3.1-pro-preview';
-const LABEL = 'Gemini';
+const { REPO, PR_NUMBER, MOONSHOT_API_KEY, GITHUB_TOKEN } = process.env;
+const MODEL = process.env.MODEL || 'moonshot-v1-128k';
+const LABEL = 'Kimi';
 
-if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is required');
+if (!MOONSHOT_API_KEY) throw new Error('MOONSHOT_API_KEY is required');
 if (!REPO) throw new Error('REPO is required');
 if (!PR_NUMBER) throw new Error('PR_NUMBER is required');
 
@@ -18,12 +18,11 @@ if (!/^\d+$/.test(PR_NUMBER)) {
 }
 
 // ── Pricing table (per 1M tokens, USD) ──────────────────────────────────────
+// Moonshot pricing as of 2025 — update if changed
 const PRICING = {
-  'gemini-3.1-pro-preview': { input: 2.00, output: 12.00 },
-  'gemini-3.1-flash-lite-preview': { input: 0.25, output: 1.50 },
-  'gemini-2.5-pro': { input: 1.25, output: 10.00 },
-  'gemini-2.5-flash': { input: 0.30, output: 2.50 },
-  'gemini-2.5-flash-lite': { input: 0.10, output: 0.40 },
+  'moonshot-v1-8k': { input: 0.60, output: 0.60 },
+  'moonshot-v1-32k': { input: 0.60, output: 0.60 },
+  'moonshot-v1-128k': { input: 0.60, output: 0.60 },
 };
 
 function estimateCost(model, promptChars, outputChars = 4000) {
@@ -163,9 +162,7 @@ const conventionsBlock = conventions
   ? `Project conventions to enforce (from CLAUDE.md):\n---\n${conventions}\n---\n\n`
   : '';
 
-const promptParts = [
-  systemPrompt,
-  '',
+const userPrompt = [
   `Repository: ${REPO}`,
   `PR #${PR_NUMBER}: ${pr.title}`,
   '',
@@ -179,57 +176,49 @@ const promptParts = [
   truncated ? '\n(NOTE: diff was empty after ignore-filtering.)' : '',
   '',
   reviewInstructions,
-].filter(Boolean);
-
-const prompt = promptParts.join('\n');
+].filter(Boolean).join('\n');
 
 // ── Cost estimate ───────────────────────────────────────────────────────────
-const costEst = estimateCost(MODEL, prompt.length);
+const costEst = estimateCost(MODEL, systemPrompt.length + userPrompt.length);
 if (costEst) {
   console.log(`Estimated cost: ~$${costEst.costUSD.toFixed(4)} (${costEst.inputTokens} input tokens)`);
 }
 
-// ── Write prompt to file ────────────────────────────────────────────────────
-const promptFile = '/tmp/gemini-review-prompt.txt';
-writeFileSync(promptFile, prompt);
+// ── Call Kimi / Moonshot API ────────────────────────────────────────────────
+console.log(`Invoking Kimi / Moonshot API (${MODEL})...`);
 
-// ── Invoke Gemini CLI ───────────────────────────────────────────────────────
-console.log(`Invoking Gemini CLI (${MODEL})...`);
-const result = spawnSync(
-  'npx',
-  [
-    '-y',
-    '@google/gemini-cli@0.38.2',
-    '-p', `@{${promptFile}}`,
-    '-m',
-    MODEL,
-    '--approval-mode',
-    'default',
-    '--allowed-tools',
-    'read_file,list_directory,glob,search_file_content',
-    '--output-format',
-    'json',
-  ],
-  { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 50 * 1024 * 1024 },
-);
+const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${MOONSHOT_API_KEY}`,
+  },
+  body: JSON.stringify({
+    model: MODEL,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.2,
+    max_tokens: 4096,
+  }),
+});
 
-if (result.status !== 0) {
-  console.error(`Gemini CLI exited with status ${result.status}`);
+if (!response.ok) {
+  const errText = await response.text();
+  console.error(`Kimi API error ${response.status}:`, errText);
   if (checkId) {
-    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, `Gemini CLI exited with status ${result.status}`);
+    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, `Kimi API returned ${response.status}: ${errText.slice(0, 500)}`);
   }
-  process.exit(result.status ?? 1);
+  process.exit(1);
 }
 
-let modelText;
-try {
-  const wrapper = JSON.parse(result.stdout);
-  modelText = typeof wrapper.response === 'string' ? wrapper.response : result.stdout;
-} catch {
-  modelText = result.stdout;
-}
+const data = await response.json();
+const raw = data.choices?.[0]?.message?.content?.trim() || '';
 
-let raw = modelText.trim();
+console.log(`Kimi response length: ${raw.length} chars`);
+
+// ── Parse JSON ──────────────────────────────────────────────────────────────
 const fenceMatch = raw.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
 if (fenceMatch) raw = fenceMatch[1].trim();
 
@@ -241,7 +230,7 @@ const candidate = firstBrace !== -1 && lastBrace > firstBrace
 
 const postPlainFallback = (reason, body) => {
   const fallback = [
-    `## 🤖 Gemini CLI review — ${LABEL} (${MODEL})`,
+    `## 🤖 Kimi review — ${LABEL} (${MODEL})`,
     '',
     `_Note: ${reason}. Posting the agent's raw output as a single comment — no inline annotations this run._`,
     costEst ? `_Estimated cost: ~$${costEst.costUSD.toFixed(4)}_` : '',
@@ -256,9 +245,9 @@ let review;
 try {
   review = JSON.parse(candidate || raw);
 } catch (err) {
-  console.warn('Gemini output was not valid JSON:', err.message);
+  console.warn('Kimi output was not valid JSON:', err.message);
   console.warn('Raw (first 2000 chars):\n', raw.slice(0, 2000));
-  postPlainFallback('Gemini returned free-form text instead of structured JSON', raw);
+  postPlainFallback('Kimi returned free-form text instead of structured JSON', raw);
   if (checkId) {
     updateCheckRun(checkId, 'neutral', `${LABEL} review — parse error`, 'Could not parse agent output as JSON.');
   }
@@ -266,8 +255,8 @@ try {
 }
 
 if (typeof review.summary !== 'string' || !Array.isArray(review.comments)) {
-  console.warn('Gemini response shape was invalid:', review);
-  postPlainFallback('Gemini response shape was invalid', raw);
+  console.warn('Kimi response shape was invalid:', review);
+  postPlainFallback('Kimi response shape was invalid', raw);
   if (checkId) {
     updateCheckRun(checkId, 'neutral', `${LABEL} review — invalid shape`, 'Agent response did not match expected JSON shape.');
   }
@@ -284,7 +273,7 @@ review.comments = review.comments.filter(
     c.body.trim().length > 0,
 );
 
-console.log(`Gemini returned: ${review.comments.length} inline comments`);
+console.log(`Kimi returned: ${review.comments.length} inline comments`);
 
 // ── Severity emojis ─────────────────────────────────────────────────────────
 const SEVERITY_EMOJI = {
@@ -300,7 +289,7 @@ function formatComment(c) {
 }
 
 const summary = [
-  `## 🤖 Gemini CLI review — ${LABEL} (${MODEL})`,
+  `## 🤖 Kimi review — ${LABEL} (${MODEL})`,
   '',
   review.summary,
   truncated ? '\n_Note: the diff was empty after ignore-filtering._' : '',

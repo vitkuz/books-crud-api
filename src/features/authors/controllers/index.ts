@@ -4,4 +4,5 @@ export {
   getAuthorById,
   putAuthor,
   deleteAuthorById,
+  postAuthorsBatch,
 } from './authors.controller';

@@ -1,0 +1,123 @@
+name: All Reviewers Parallel
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  resolve-pr:
+    if: ${{ github.event.issue.pull_request && (startsWith(github.event.comment.body, '/all-review') || startsWith(github.event.comment.body, ' /all-review')) }}
+    runs-on: ubuntu-latest
+    outputs:
+      number: ${{ steps.pr.outputs.number }}
+      head_ref: ${{ steps.pr.outputs.head_ref }}
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    steps:
+      - name: React to trigger comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
+            -f content=eyes
+
+      - name: Post job link
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/$REPO/issues/$PR_ISSUE_NUMBER/comments" \
+            -f body="▶️ \`/all-review\` running all reviewers in parallel — [view job logs]($RUN_URL)"
+
+      - name: Resolve PR head ref
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.issue.number }}
+          HEAD_REF=$(gh pr view "$PR_NUMBER" \
+            --repo ${{ github.repository }} \
+            --json headRefName \
+            --jq .headRefName)
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+
+  review:
+    needs: resolve-pr
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      checks: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: DeepSeek
+            script: pi-review.mjs
+            env:
+              PI_PROVIDER: deepseek
+              PI_MODEL: deepseek-chat
+              LABEL: DeepSeek
+              PI_WRITE_MODELS_JSON: '1'
+              DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+
+          - name: OpenAI
+            script: pi-review.mjs
+            env:
+              PI_PROVIDER: openai
+              PI_MODEL: gpt-4.1
+              LABEL: OpenAI
+              OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+          - name: Gemini
+            script: gemini-review.mjs
+            env:
+              MODEL: gemini-3.1-pro-preview
+              GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+          - name: Copilot
+            script: copilot-cli-review.mjs
+            env:
+              MODEL: auto
+              COPILOT_PAT: ${{ secrets.COPILOT_PAT }}
+
+          - name: Kimi
+            script: kimi-review.mjs
+            env:
+              MODEL: moonshot-v1-128k
+              MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
+
+    name: Review — ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.resolve-pr.outputs.head_ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Copilot CLI (if needed)
+        if: matrix.name == 'Copilot'
+        run: npm install -g @github/copilot
+
+      - name: Run ${{ matrix.name }} reviewer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.resolve-pr.outputs.number }}
+          ${{ insert }}: ${{ matrix.env }}
+        run: node .github/scripts/${{ matrix.script }}

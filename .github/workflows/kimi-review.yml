@@ -1,4 +1,4 @@
-name: pi OpenAI PR Review
+name: Kimi PR Review
 
 on:
   issue_comment:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   review:
-    if: ${{ github.event.issue.pull_request && (startsWith(github.event.comment.body, '/pi-openai-review') || startsWith(github.event.comment.body, ' /pi-openai-review')) }}
+    if: ${{ github.event.issue.pull_request && (startsWith(github.event.comment.body, '/kimi-review') || startsWith(github.event.comment.body, ' /kimi-review')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -35,7 +35,7 @@ jobs:
             --method POST \
             -H "Accept: application/vnd.github+json" \
             "/repos/$REPO/issues/$PR_ISSUE_NUMBER/comments" \
-            -f body="▶️ \`/pi-openai-review\` running — [view job logs]($RUN_URL)"
+            -f body="▶️ \`/kimi-review\` running — [view job logs]($RUN_URL)"
 
       - name: Resolve PR head ref
         id: pr
@@ -59,14 +59,12 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Run pi reviewer (OpenAI)
+      - name: Run Kimi reviewer
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
-          PI_PROVIDER: openai
-          PI_MODEL: gpt-4.1
-          LABEL: OpenAI
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: node .github/scripts/pi-review.mjs
+          MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
+          MODEL: moonshot-v1-128k
+        run: node .github/scripts/kimi-review.mjs
