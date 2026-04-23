@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 const { REPO, PR_NUMBER, MOONSHOT_API_KEY, GITHUB_TOKEN } = process.env;
 const MODEL = process.env.MODEL || 'moonshot-v1-128k';
@@ -18,7 +19,6 @@ if (!/^\d+$/.test(PR_NUMBER)) {
 }
 
 // ── Pricing table (per 1M tokens, USD) ──────────────────────────────────────
-// Moonshot pricing as of 2025 — update if changed
 const PRICING = {
   'moonshot-v1-8k': { input: 0.60, output: 0.60 },
   'moonshot-v1-32k': { input: 0.60, output: 0.60 },
@@ -72,44 +72,6 @@ function updateCheckRun(checkId, conclusion, summary, text) {
   ], { encoding: 'utf8' });
 }
 
-// ── Ignore patterns ─────────────────────────────────────────────────────────
-function loadIgnorePatterns() {
-  const file = '.reviewignore';
-  if (!existsSync(file)) return [];
-  return readFileSync(file, 'utf8')
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#'));
-}
-
-function shouldIgnoreFile(filePath, patterns) {
-  return patterns.some((pat) => {
-    const regex = new RegExp(
-      '^' +
-      pat
-        .replace(/\*\*/g, '{{GLOBSTAR}}')
-        .replace(/\*/g, '[^/]*')
-        .replace(/\?/g, '.')
-        .replace(/\{\{GLOBSTAR\}\}/g, '.*')
-        .replace(/\./g, '\\.')
-      + '$'
-    );
-    return regex.test(filePath) || filePath.includes(pat.replace(/\*/g, ''));
-  });
-}
-
-function filterDiff(diff, patterns) {
-  if (!patterns.length) return diff;
-  const hunks = diff.split(/^diff --git /m).filter(Boolean);
-  const kept = hunks.filter((hunk) => {
-    const header = hunk.split('\n')[0] || '';
-    const m = header.match(/\s[ab]\/(.+?)(?:\s|$)/);
-    if (!m) return true;
-    return !shouldIgnoreFile(m[1], patterns);
-  });
-  return kept.length ? 'diff --git ' + kept.join('diff --git ') : '';
-}
-
 // ── Shell helpers ───────────────────────────────────────────────────────────
 const run = (file, args) =>
   execFileSync(file, args, { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
@@ -133,17 +95,9 @@ try {
 
 // ── Diff ────────────────────────────────────────────────────────────────────
 let diff = gh(['pr', 'diff', PR_NUMBER, '--repo', REPO]);
-const patterns = loadIgnorePatterns();
-const beforeLen = diff.length;
-diff = filterDiff(diff, patterns);
-const afterLen = diff.length;
-if (beforeLen !== afterLen) {
-  console.log(`Filtered diff: ${beforeLen} → ${afterLen} chars (${patterns.length} ignore patterns)`);
-}
-
 let truncated = false;
 if (!diff) {
-  diff = '(no diff after filtering)';
+  diff = '(no diff)';
   truncated = true;
 }
 
@@ -173,64 +127,197 @@ const userPrompt = [
   '```diff',
   diff,
   '```',
-  truncated ? '\n(NOTE: diff was empty after ignore-filtering.)' : '',
+  truncated ? '\n(NOTE: no diff available.)' : '',
   '',
   reviewInstructions,
 ].filter(Boolean).join('\n');
 
-// ── Cost estimate ───────────────────────────────────────────────────────────
-const costEst = estimateCost(MODEL, systemPrompt.length + userPrompt.length);
-if (costEst) {
-  console.log(`Estimated cost: ~$${costEst.costUSD.toFixed(4)} (${costEst.inputTokens} input tokens)`);
+// ── Tool definitions ────────────────────────────────────────────────────────
+const TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'read_file',
+      description: 'Read the contents of a file',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Relative file path' },
+        },
+        required: ['path'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_directory',
+      description: 'List files in a directory',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Relative directory path' },
+        },
+        required: ['path'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'grep',
+      description: 'Search for a pattern in files',
+      parameters: {
+        type: 'object',
+        properties: {
+          pattern: { type: 'string', description: 'Regex pattern to search' },
+          path: { type: 'string', description: 'Directory or file to search (optional)' },
+        },
+        required: ['pattern'],
+      },
+    },
+  },
+];
+
+function executeTool(call) {
+  const name = call.function.name;
+  const args = JSON.parse(call.function.arguments);
+  console.log(`Tool call: ${name}(${JSON.stringify(args)})`);
+
+  try {
+    switch (name) {
+      case 'read_file': {
+        const p = args.path;
+        if (!existsSync(p)) return { error: `File not found: ${p}` };
+        const content = readFileSync(p, 'utf8');
+        return { content: content.slice(0, 50000) }; // cap to avoid token explosion
+      }
+      case 'list_directory': {
+        const p = args.path || '.';
+        if (!existsSync(p)) return { error: `Directory not found: ${p}` };
+        const entries = readdirSync(p).map((e) => {
+          const s = statSync(join(p, e));
+          return { name: e, type: s.isDirectory() ? 'dir' : 'file' };
+        });
+        return { entries };
+      }
+      case 'grep': {
+        const pattern = args.pattern;
+        const path = args.path || '.';
+        try {
+          const results = run('grep', ['-rn', pattern, path]);
+          return { matches: results.split('\n').filter(Boolean).slice(0, 50) };
+        } catch (e) {
+          return { matches: [] };
+        }
+      }
+      default:
+        return { error: `Unknown tool: ${name}` };
+    }
+  } catch (err) {
+    return { error: err.message };
+  }
 }
 
-// ── Call Kimi / Moonshot API ────────────────────────────────────────────────
-console.log(`Invoking Kimi / Moonshot API (${MODEL})...`);
+// ── Kimi agent loop ─────────────────────────────────────────────────────────
+async function runKimiAgent() {
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt },
+  ];
 
-const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${MOONSHOT_API_KEY}`,
-  },
-  body: JSON.stringify({
-    model: MODEL,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    temperature: 0.2,
-    max_tokens: 4096,
-  }),
-});
+  let totalInputChars = systemPrompt.length + userPrompt.length;
+  let totalOutputChars = 0;
+  const maxRounds = 10;
 
-if (!response.ok) {
-  const errText = await response.text();
-  console.error(`Kimi API error ${response.status}:`, errText);
+  for (let round = 0; round < maxRounds; round++) {
+    console.log(`Agent round ${round + 1}/${maxRounds}...`);
+
+    const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${MOONSHOT_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages,
+        tools: TOOLS,
+        tool_choice: 'auto',
+        temperature: 0.2,
+        max_tokens: 4096,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Kimi API error ${response.status}: ${errText}`);
+    }
+
+    const data = await response.json();
+    const choice = data.choices[0];
+    const message = choice.message;
+
+    totalOutputChars += message.content?.length || 0;
+
+    // Check if the model wants to use tools
+    if (message.tool_calls && message.tool_calls.length > 0) {
+      messages.push(message); // Add assistant's tool request
+
+      for (const toolCall of message.tool_calls) {
+        const result = executeTool(toolCall);
+        messages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          name: toolCall.function.name,
+          content: JSON.stringify(result),
+        });
+        totalInputChars += JSON.stringify(result).length;
+      }
+      continue; // Next round
+    }
+
+    // No tool calls — this is the final response
+    const costEst = estimateCost(MODEL, totalInputChars, totalOutputChars);
+    return { content: message.content || '', costEst };
+  }
+
+  throw new Error(`Agent exceeded ${maxRounds} rounds without returning final review`);
+}
+
+// ── Run the agent ───────────────────────────────────────────────────────────
+console.log(`Starting Kimi agent (${MODEL})...`);
+let result;
+try {
+  result = await runKimiAgent();
+} catch (err) {
+  console.error('Kimi agent failed:', err.message);
   if (checkId) {
-    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, `Kimi API returned ${response.status}: ${errText.slice(0, 500)}`);
+    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, err.message);
   }
   process.exit(1);
 }
 
-const data = await response.json();
-const raw = data.choices?.[0]?.message?.content?.trim() || '';
-
+const { content: raw, costEst } = result;
 console.log(`Kimi response length: ${raw.length} chars`);
+if (costEst) {
+  console.log(`Estimated cost: ~$${costEst.costUSD.toFixed(4)} (${costEst.inputTokens} input / ${costEst.outputTokens} output tokens)`);
+}
 
 // ── Parse JSON ──────────────────────────────────────────────────────────────
-const fenceMatch = raw.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
-if (fenceMatch) raw = fenceMatch[1].trim();
+let cleaned = raw.trim();
+const fenceMatch = cleaned.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
+if (fenceMatch) cleaned = fenceMatch[1].trim();
 
-const firstBrace = raw.indexOf('{');
-const lastBrace = raw.lastIndexOf('}');
+const firstBrace = cleaned.indexOf('{');
+const lastBrace = cleaned.lastIndexOf('}');
 const candidate = firstBrace !== -1 && lastBrace > firstBrace
-  ? raw.slice(firstBrace, lastBrace + 1)
+  ? cleaned.slice(firstBrace, lastBrace + 1)
   : '';
 
 const postPlainFallback = (reason, body) => {
   const fallback = [
-    `## 🤖 Kimi review — ${LABEL} (${MODEL})`,
+    `## 🤖 Kimi agent review — ${LABEL} (${MODEL})`,
     '',
     `_Note: ${reason}. Posting the agent's raw output as a single comment — no inline annotations this run._`,
     costEst ? `_Estimated cost: ~$${costEst.costUSD.toFixed(4)}_` : '',
@@ -243,10 +330,10 @@ const postPlainFallback = (reason, body) => {
 
 let review;
 try {
-  review = JSON.parse(candidate || raw);
+  review = JSON.parse(candidate || cleaned);
 } catch (err) {
   console.warn('Kimi output was not valid JSON:', err.message);
-  console.warn('Raw (first 2000 chars):\n', raw.slice(0, 2000));
+  console.warn('Raw (first 2000 chars):\n', cleaned.slice(0, 2000));
   postPlainFallback('Kimi returned free-form text instead of structured JSON', raw);
   if (checkId) {
     updateCheckRun(checkId, 'neutral', `${LABEL} review — parse error`, 'Could not parse agent output as JSON.');
@@ -289,10 +376,10 @@ function formatComment(c) {
 }
 
 const summary = [
-  `## 🤖 Kimi review — ${LABEL} (${MODEL})`,
+  `## 🤖 Kimi agent review — ${LABEL} (${MODEL})`,
   '',
   review.summary,
-  truncated ? '\n_Note: the diff was empty after ignore-filtering._' : '',
+  truncated ? '\n_Note: no diff available for this PR._' : '',
   costEst ? `\n_Estimated cost: ~$${costEst.costUSD.toFixed(4)}_` : '',
 ].join('\n');
 
