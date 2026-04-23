@@ -66,5 +66,5 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
-          MODEL: kimi-for-coding
+          MODEL: moonshot-v1-128k
         run: node .github/scripts/kimi-review.mjs

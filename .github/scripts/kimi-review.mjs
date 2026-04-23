@@ -4,9 +4,9 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from '
 import { join } from 'node:path';
 
 const { REPO, PR_NUMBER, MOONSHOT_API_KEY, GITHUB_TOKEN } = process.env;
-const MODEL = process.env.MODEL || 'kimi-for-coding';
+const MODEL = process.env.MODEL || 'moonshot-v1-128k';
 const LABEL = 'Kimi';
-const BASE_URL = 'https://api.kimi.com/coding/v1';
+const BASE_URL = 'https://api.moonshot.cn/v1';
 
 if (!MOONSHOT_API_KEY) throw new Error('MOONSHOT_API_KEY is required');
 if (!REPO) throw new Error('REPO is required');
@@ -22,7 +22,9 @@ if (!/^\d+$/.test(PR_NUMBER)) {
 // ── Pricing table (per 1M tokens, USD) ──────────────────────────────────────
 // Kimi Code pricing is subscription-based; these are rough API estimates
 const PRICING = {
-  'kimi-for-coding': { input: 0.60, output: 0.60 },
+  'moonshot-v1-8k': { input: 0.60, output: 0.60 },
+  'moonshot-v1-32k': { input: 0.60, output: 0.60 },
+  'moonshot-v1-128k': { input: 0.60, output: 0.60 },
 };
 
 function estimateCost(model, promptChars, outputChars = 4000) {
