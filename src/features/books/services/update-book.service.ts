@@ -1,7 +1,7 @@
 import logger from '../../../shared/utils/logger';
 import { findAuthorById } from '../../authors/authors.store';
-import { findBookById, replaceBook } from '../books.store';
-import { Book, UpdateBookPayload, UpdateBookResult } from '../books.types';
+import { findBookById, replaceBook, BookPatch } from '../books.store';
+import { UpdateBookPayload, UpdateBookResult } from '../books.types';
 import { dedupeCategoryIds, findMissingCategoryIds } from '../books.utils';
 
 export const updateBook = (id: string, payload: UpdateBookPayload): UpdateBookResult => {
@@ -23,11 +23,10 @@ export const updateBook = (id: string, payload: UpdateBookPayload): UpdateBookRe
       return { ok: false, error: 'INVALID_CATEGORY_IDS', missingIds };
     }
   }
-  const now = new Date().toISOString();
   const { categoryIds: _rawCategoryIds, ...rest } = payload;
-  const patch: Partial<Book> = { ...rest, updatedAt: now };
+  const patch: BookPatch = { ...rest };
   if (categoryIdsPatch !== undefined) patch.categoryIds = categoryIdsPatch;
-  const updated: Book | undefined = replaceBook(id, patch);
+  const updated = replaceBook(id, patch);
   if (!updated) {
     return { ok: false, error: 'BOOK_NOT_FOUND' };
   }

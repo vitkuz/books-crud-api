@@ -9,8 +9,7 @@ export const createAuthor = (payload: CreateAuthorPayload): Author => {
   const author: Author = {
     id: uuidv4(),
     name: payload.name,
-    createdAt: now,
-    updatedAt: now,
+    metadata: { createdAt: now, updatedAt: now },
   };
   const inserted: Author = insertAuthor(author);
   logger.debug('create-author.service success', { id: inserted.id });

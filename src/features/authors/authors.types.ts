@@ -1,11 +1,11 @@
 import { z } from 'zod';
+import { Metadata } from '../../shared/types/metadata.types';
 import { createAuthorSchema, updateAuthorSchema } from './authors.schema';
 
 export type Author = {
   id: string;
   name: string;
-  createdAt: string;
-  updatedAt: string;
+  metadata: Metadata;
 };
 
 export type AuthorResponse = Author;

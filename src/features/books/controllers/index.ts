@@ -1,6 +1,7 @@
 export {
   postBook,
   getBooks,
+  getBooksCount,
   getBookById,
   putBook,
   deleteBookById,

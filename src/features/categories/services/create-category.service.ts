@@ -5,12 +5,11 @@ import { Category, CreateCategoryPayload } from '../categories.types';
 
 export const createCategory = (payload: CreateCategoryPayload): Category => {
   logger.debug('create-category.service start', { payload });
-  const now = new Date().toISOString();
+  const now: string = new Date().toISOString();
   const category: Category = {
     id: uuidv4(),
     name: payload.name,
-    createdAt: now,
-    updatedAt: now,
+    metadata: { createdAt: now, updatedAt: now },
   };
   const inserted: Category = insertCategory(category);
   logger.debug('create-category.service success', { id: inserted.id });

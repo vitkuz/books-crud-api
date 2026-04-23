@@ -1,11 +1,11 @@
 import { z } from 'zod';
+import { Metadata } from '../../shared/types/metadata.types';
 import { createCategorySchema, updateCategorySchema } from './categories.schema';
 
 export type Category = {
   id: string;
   name: string;
-  createdAt: string;
-  updatedAt: string;
+  metadata: Metadata;
 };
 
 export type CategoryResponse = Category;
