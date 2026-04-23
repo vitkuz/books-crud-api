@@ -167,7 +167,7 @@ log.startGroup('Invoke Kimi CLI');
 log.info('Command: kimi --quiet --input-format text -w .');
 const result = spawnSync(
   'kimi',
-  ['--quiet', '--input-format', 'text', '-w', '.'],
+  ['--quiet', '--input-format', 'text', '-w', '.', '--model', 'moonshot-ai/kimi-k2.6'],
   {
     encoding: 'utf8',
     input: prompt,
