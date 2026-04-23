@@ -393,6 +393,9 @@ const costLine = usage.costUSD != null
   ? `model=\`${MODEL}\` · input=${usage.inputTokens.toLocaleString()}tok · output=${usage.outputTokens.toLocaleString()}tok · cost=$${usage.costUSD.toFixed(4)}`
   : `model=\`${MODEL}\` · cost unavailable`;
 
+// Share cost with the workflow's final comment-update step.
+try { writeFileSync('/tmp/cc-cost.txt', costLine); } catch {}
+
 if (exitCode !== 0 || launchFailed) {
   console.error(`claude CLI exited with code ${exitCode}${launchFailed ? ' (launch failure)' : ''}`);
   try {
