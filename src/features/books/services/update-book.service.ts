@@ -2,7 +2,12 @@ import logger from '../../../shared/utils/logger';
 import { findAuthorById } from '../../authors/authors.store';
 import { findBookById, replaceBook } from '../books.store';
 import { Book, UpdateBookPayload, UpdateBookResult } from '../books.types';
-import { dedupeCategoryIds, findMissingCategoryIds } from '../books.utils';
+import {
+  dedupeCategoryIds,
+  dedupeTagIds,
+  findMissingCategoryIds,
+  findMissingTagIds,
+} from '../books.utils';
 
 export const updateBook = (id: string, payload: UpdateBookPayload): UpdateBookResult => {
   logger.debug('update-book.service start', { id, payload });
@@ -17,16 +22,26 @@ export const updateBook = (id: string, payload: UpdateBookPayload): UpdateBookRe
   let categoryIdsPatch: string[] | undefined;
   if (payload.categoryIds !== undefined) {
     categoryIdsPatch = dedupeCategoryIds(payload.categoryIds);
-    const missingIds: string[] = findMissingCategoryIds(categoryIdsPatch);
-    if (missingIds.length > 0) {
-      logger.debug('update-book.service invalid-category-ids', { missingIds });
-      return { ok: false, error: 'INVALID_CATEGORY_IDS', missingIds };
+    const missingCategoryIds: string[] = findMissingCategoryIds(categoryIdsPatch);
+    if (missingCategoryIds.length > 0) {
+      logger.debug('update-book.service invalid-category-ids', { missingCategoryIds });
+      return { ok: false, error: 'INVALID_CATEGORY_IDS', missingIds: missingCategoryIds };
+    }
+  }
+  let tagIdsPatch: string[] | undefined;
+  if (payload.tagIds !== undefined) {
+    tagIdsPatch = dedupeTagIds(payload.tagIds);
+    const missingTagIds: string[] = findMissingTagIds(tagIdsPatch);
+    if (missingTagIds.length > 0) {
+      logger.debug('update-book.service invalid-tag-ids', { missingTagIds });
+      return { ok: false, error: 'INVALID_TAG_IDS', missingIds: missingTagIds };
     }
   }
   const now = new Date().toISOString();
-  const { categoryIds: _rawCategoryIds, ...rest } = payload;
+  const { categoryIds: _rawCategoryIds, tagIds: _rawTagIds, ...rest } = payload;
   const patch: Partial<Book> = { ...rest, updatedAt: now };
   if (categoryIdsPatch !== undefined) patch.categoryIds = categoryIdsPatch;
+  if (tagIdsPatch !== undefined) patch.tagIds = tagIdsPatch;
   const updated: Book | undefined = replaceBook(id, patch);
   if (!updated) {
     return { ok: false, error: 'BOOK_NOT_FOUND' };

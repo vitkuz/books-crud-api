@@ -3,7 +3,12 @@ import logger from '../../../shared/utils/logger';
 import { findAuthorById } from '../../authors/authors.store';
 import { insertBook } from '../books.store';
 import { Book, CreateBookPayload, CreateBookResult } from '../books.types';
-import { dedupeCategoryIds, findMissingCategoryIds } from '../books.utils';
+import {
+  dedupeCategoryIds,
+  dedupeTagIds,
+  findMissingCategoryIds,
+  findMissingTagIds,
+} from '../books.utils';
 
 export const createBook = (payload: CreateBookPayload): CreateBookResult => {
   logger.debug('create-book.service start', { payload });
@@ -12,10 +17,16 @@ export const createBook = (payload: CreateBookPayload): CreateBookResult => {
     return { ok: false, error: 'AUTHOR_NOT_FOUND' };
   }
   const categoryIds: string[] = dedupeCategoryIds(payload.categoryIds);
-  const missingIds: string[] = findMissingCategoryIds(categoryIds);
-  if (missingIds.length > 0) {
-    logger.debug('create-book.service invalid-category-ids', { missingIds });
-    return { ok: false, error: 'INVALID_CATEGORY_IDS', missingIds };
+  const missingCategoryIds: string[] = findMissingCategoryIds(categoryIds);
+  if (missingCategoryIds.length > 0) {
+    logger.debug('create-book.service invalid-category-ids', { missingCategoryIds });
+    return { ok: false, error: 'INVALID_CATEGORY_IDS', missingIds: missingCategoryIds };
+  }
+  const tagIds: string[] = dedupeTagIds(payload.tagIds);
+  const missingTagIds: string[] = findMissingTagIds(tagIds);
+  if (missingTagIds.length > 0) {
+    logger.debug('create-book.service invalid-tag-ids', { missingTagIds });
+    return { ok: false, error: 'INVALID_TAG_IDS', missingIds: missingTagIds };
   }
   const now: string = new Date().toISOString();
   const book: Book = {
@@ -23,6 +34,7 @@ export const createBook = (payload: CreateBookPayload): CreateBookResult => {
     title: payload.title,
     authorId: payload.authorId,
     categoryIds,
+    tagIds,
     year: payload.year,
     createdAt: now,
     updatedAt: now,
