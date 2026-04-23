@@ -61,6 +61,17 @@ jobs:
       - name: Add Kimi CLI to PATH
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      - name: Configure Kimi CLI
+        run: |
+          mkdir -p "$HOME/.kimi"
+          cat > "$HOME/.kimi/config.toml" << 'EOF'
+          default_model = "moonshot-ai/kimi-k2.6"
+
+          [models."moonshot-ai/kimi-k2.6"]
+          provider = "managed:moonshot-ai"
+          model = "kimi-k2.6"
+          EOF
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
