@@ -67,9 +67,16 @@ jobs:
           cat > "$HOME/.kimi/config.toml" << 'EOF'
           default_model = "moonshot-ai/kimi-k2.6"
 
+          [providers."managed:moonshot-ai"]
+          type = "kimi"
+          base_url = "https://api.moonshot.ai/v1"
+          api_key = "sk-dummy"
+
           [models."moonshot-ai/kimi-k2.6"]
           provider = "managed:moonshot-ai"
           model = "kimi-k2.6"
+          max_context_size = 262144
+          capabilities = ["thinking"]
           EOF
 
       - uses: actions/setup-node@v4
@@ -86,5 +93,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
-          MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
+          KIMI_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
         run: node .github/scripts/kimi-review.mjs

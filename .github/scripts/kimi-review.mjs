@@ -3,13 +3,13 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import * as log from './logger.mjs';
 
-const { REPO, PR_NUMBER, MOONSHOT_API_KEY, GITHUB_TOKEN } = process.env;
+const { REPO, PR_NUMBER, KIMI_API_KEY, GITHUB_TOKEN } = process.env;
 const LABEL = 'Kimi';
 
 log.startGroup('Setup & validation');
 
-if (!MOONSHOT_API_KEY) {
-  log.setFailed('MOONSHOT_API_KEY is required');
+if (!KIMI_API_KEY) {
+  log.setFailed('KIMI_API_KEY is required');
   process.exit(1);
 }
 if (!REPO) {
@@ -173,7 +173,7 @@ const result = spawnSync(
     input: prompt,
     stdio: ['pipe', 'pipe', 'pipe'],
     maxBuffer: 50 * 1024 * 1024,
-    env: { ...process.env, MOONSHOT_API_KEY },
+    env: { ...process.env, KIMI_API_KEY },
   },
 );
 
