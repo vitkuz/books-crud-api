@@ -135,22 +135,17 @@ if (costEst) {
   console.log(`Estimated cost: ~$${costEst.costUSD.toFixed(4)} (${costEst.inputTokens} input tokens)`);
 }
 
-// ── Write prompt to file ────────────────────────────────────────────────────
-const promptFile = './.review-prompt.tmp.txt';
-writeFileSync(promptFile, prompt);
-
 // ── Invoke Kimi CLI ─────────────────────────────────────────────────────────
+// Pipe prompt via stdin --input-format text (avoids kimi treating @file as a
+// file to analyse rather than the literal prompt).
 console.log('Invoking Kimi CLI...');
 const result = spawnSync(
   'kimi',
-  [
-    '--quiet',
-    '-p', `@{${promptFile}}`,
-    '-w', '.',
-  ],
+  ['--quiet', '--input-format', 'text', '-w', '.'],
   {
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'inherit'],
+    input: prompt,
+    stdio: ['pipe', 'pipe', 'inherit'],
     maxBuffer: 50 * 1024 * 1024,
     env: { ...process.env, MOONSHOT_API_KEY },
   },
