@@ -14,7 +14,6 @@ const {
 
 const MODEL = process.env.CLAUDE_MODEL || 'claude-opus-4-7';
 const LABEL = 'Claude (CLI)';
-const MAX_DIFF_BYTES = Number(process.env.MAX_DIFF_BYTES || 200_000);
 
 if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is required');
 if (!GITHUB_TOKEN) throw new Error('GITHUB_TOKEN is required');
@@ -201,20 +200,6 @@ if (!diff.trim()) {
   writeFileSync('/tmp/cc-empty.md', msg);
   gh(['pr', 'comment', PR_NUMBER, '--repo', REPO, '--body-file', '/tmp/cc-empty.md']);
   if (checkId) try { updateCheckRun(checkId, 'neutral', `${LABEL}: nothing to review`, ''); } catch {}
-  process.exit(0);
-}
-
-if (diff.length > MAX_DIFF_BYTES) {
-  const msg = [
-    `## 🤖 ${LABEL} review — skipped`,
-    '',
-    `The diff is ${diff.length.toLocaleString()} bytes, which exceeds the configured cap of ${MAX_DIFF_BYTES.toLocaleString()} bytes.`,
-    '',
-    'Split the PR into smaller logical pieces and re-run `/claude-cli-review` on each.',
-  ].join('\n');
-  writeFileSync('/tmp/cc-oversize.md', msg);
-  gh(['pr', 'comment', PR_NUMBER, '--repo', REPO, '--body-file', '/tmp/cc-oversize.md']);
-  if (checkId) try { updateCheckRun(checkId, 'neutral', `${LABEL}: PR too large`, msg); } catch {}
   process.exit(0);
 }
 
