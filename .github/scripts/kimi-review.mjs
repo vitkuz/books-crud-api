@@ -1,26 +1,42 @@
 #!/usr/bin/env node
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import * as log from './logger.mjs';
 
 const { REPO, PR_NUMBER, MOONSHOT_API_KEY, GITHUB_TOKEN } = process.env;
 const LABEL = 'Kimi';
 
-if (!MOONSHOT_API_KEY) throw new Error('MOONSHOT_API_KEY is required');
-if (!REPO) throw new Error('REPO is required');
-if (!PR_NUMBER) throw new Error('PR_NUMBER is required');
+log.startGroup('Setup & validation');
 
+if (!MOONSHOT_API_KEY) {
+  log.setFailed('MOONSHOT_API_KEY is required');
+  process.exit(1);
+}
+if (!REPO) {
+  log.setFailed('REPO is required');
+  process.exit(1);
+}
+if (!PR_NUMBER) {
+  log.setFailed('PR_NUMBER is required');
+  process.exit(1);
+}
 if (!/^([\w.-]+\/){1,2}[\w.-]+$/.test(REPO)) {
-  throw new Error(`REPO does not look like "owner/name": ${REPO}`);
+  log.setFailed(`REPO does not look like "owner/name": ${REPO}`);
+  process.exit(1);
 }
 if (!/^\d+$/.test(PR_NUMBER)) {
-  throw new Error(`PR_NUMBER must be a positive integer, got: ${PR_NUMBER}`);
+  log.setFailed(`PR_NUMBER must be a positive integer, got: ${PR_NUMBER}`);
+  process.exit(1);
 }
+
+log.info(`REPO=${REPO} PR_NUMBER=${PR_NUMBER}`);
+log.endGroup();
 
 // ── Pricing table (per 1M tokens, USD) ──────────────────────────────────────
 const PRICING = { 'moonshot-ai/kimi-k2.6': { input: 0.60, output: 0.60 } };
-
 function estimateCost(promptChars, outputChars = 4000) {
   const p = PRICING['moonshot-ai/kimi-k2.6'];
+  if (!p) return null;
   const inputTokens = Math.ceil(promptChars / 4);
   const outputTokens = Math.ceil(outputChars / 4);
   const cost = (inputTokens * p.input + outputTokens * p.output) / 1_000_000;
@@ -72,29 +88,38 @@ const run = (file, args, opts = {}) =>
 const gh = (args) => run('gh', args, { env: { ...process.env, GH_TOKEN: GITHUB_TOKEN } });
 
 // ── Fetch PR metadata ───────────────────────────────────────────────────────
+log.startGroup('Fetch PR metadata');
 const pr = JSON.parse(
   gh(['pr', 'view', PR_NUMBER, '--repo', REPO, '--json', 'title,body,headRefName,baseRefName,headRefOid']),
 );
+log.info(`PR: #${PR_NUMBER} "${pr.title}"`);
+log.info(`SHA: ${pr.headRefOid}`);
+log.endGroup();
 
+// ── Create check run ────────────────────────────────────────────────────────
 const headSha = pr.headRefOid;
 const checkName = `Code Review — ${LABEL}`;
 let checkId;
 try {
   checkId = createCheckRun(checkName, headSha);
-  console.log(`Created check run #${checkId}`);
+  log.info(`Created check run #${checkId}`);
 } catch (e) {
-  console.warn('Could not create check run:', e.message);
+  log.warn(`Could not create check run: ${e.message}`);
 }
 
 // ── Diff ────────────────────────────────────────────────────────────────────
+log.startGroup('Fetch diff');
 let diff = gh(['pr', 'diff', PR_NUMBER, '--repo', REPO]);
 let truncated = false;
 if (!diff) {
   diff = '(no diff)';
   truncated = true;
 }
+log.info(`Diff length: ${diff.length} chars`);
+log.endGroup();
 
 // ── Prompts from files ──────────────────────────────────────────────────────
+log.startGroup('Build prompt');
 const systemPrompt = existsSync('.github/prompts/system-prompt.md')
   ? readFileSync('.github/prompts/system-prompt.md', 'utf8')
   : '';
@@ -128,17 +153,18 @@ const promptParts = [
 ].filter(Boolean);
 
 const prompt = promptParts.join('\n');
+log.info(`Prompt length: ${prompt.length} chars`);
+log.endGroup();
 
 // ── Cost estimate ───────────────────────────────────────────────────────────
 const costEst = estimateCost(prompt.length);
 if (costEst) {
-  console.log(`Estimated cost: ~$${costEst.costUSD.toFixed(4)} (${costEst.inputTokens} input tokens)`);
+  log.info(`Estimated cost: ~$${costEst.costUSD.toFixed(4)} (${costEst.inputTokens} input tokens)`);
 }
 
 // ── Invoke Kimi CLI ─────────────────────────────────────────────────────────
-// Pipe prompt via stdin --input-format text (avoids kimi treating @file as a
-// file to analyse rather than the literal prompt).
-console.log('Invoking Kimi CLI...');
+log.startGroup('Invoke Kimi CLI');
+log.info('Command: kimi --quiet --input-format text -w .');
 const result = spawnSync(
   'kimi',
   ['--quiet', '--input-format', 'text', '-w', '.'],
@@ -151,28 +177,47 @@ const result = spawnSync(
   },
 );
 
-if (result.status !== 0) {
-  console.warn(`Kimi CLI exited with status ${result.status} (will try to parse stdout anyway)`);
+log.info(`Exit code: ${result.status}`);
+log.info(`Stdout length: ${result.stdout?.length ?? 0}`);
+log.info(`Stderr length: ${result.stderr?.length ?? 0}`);
+
+if (result.stderr) {
+  const stderrLines = result.stderr.trim().split('\n').filter(Boolean);
+  for (const line of stderrLines.slice(0, 20)) {
+    log.warn(`stderr: ${line}`);
+  }
+  if (stderrLines.length > 20) {
+    log.warn(`stderr: ... (${stderrLines.length - 20} more lines)`);
+  }
 }
 
 let raw = result.stdout?.trim() || '';
 
 if (!raw && result.status !== 0) {
-  const stderr = result.stderr?.trim() || '(no stderr)';
-  console.error('Kimi CLI failed with empty stdout');
-  console.error(`Kimi stderr: ${stderr}`);
+  log.error('Kimi CLI failed with empty stdout');
   if (checkId) {
-    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, `Kimi CLI exited ${result.status} with empty stdout. stderr: ${stderr.slice(0, 500)}`);
+    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, 'Kimi CLI returned empty stdout');
   }
+  log.endGroup();
   process.exit(result.status ?? 1);
+}
+
+if (result.status !== 0) {
+  log.warn(`Kimi exited ${result.status} but stdout is non-empty; attempting to parse`);
 }
 
 // Strip the "To resume this session" footer
 const resumeLine = raw.indexOf('\nTo resume this session:');
 if (resumeLine !== -1) {
   raw = raw.slice(0, resumeLine).trim();
+  log.info('Stripped session-resume footer');
 }
 
+log.info(`Response preview (first 200 chars): ${raw.slice(0, 200).replace(/\n/g, '\\n')}`);
+log.endGroup();
+
+// ── Parse JSON ──────────────────────────────────────────────────────────────
+log.startGroup('Parse response');
 const fenceMatch = raw.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
 if (fenceMatch) raw = fenceMatch[1].trim();
 
@@ -198,22 +243,25 @@ const postPlainFallback = (reason, body) => {
 let review;
 try {
   review = JSON.parse(candidate || raw);
+  log.info('JSON parsed successfully');
 } catch (err) {
-  console.warn('Kimi CLI output was not valid JSON:', err.message);
-  console.warn('Raw (first 2000 chars):\n', raw.slice(0, 2000));
-  postPlainFallback('Kimi CLI returned free-form text instead of structured JSON', raw);
+  log.error(`JSON parse error: ${err.message}`);
+  log.warn(`Raw first 500 chars: ${raw.slice(0, 500).replace(/\n/g, '\\n')}`);
+  postPlainFallback('Kimi returned free-form text instead of structured JSON', raw);
   if (checkId) {
     updateCheckRun(checkId, 'neutral', `${LABEL} review — parse error`, 'Could not parse agent output as JSON.');
   }
+  log.endGroup();
   process.exit(0);
 }
 
 if (typeof review.summary !== 'string' || !Array.isArray(review.comments)) {
-  console.warn('Kimi response shape was invalid:', review);
-  postPlainFallback('Kimi CLI response shape was invalid', raw);
+  log.error(`Invalid response shape: summary=${typeof review.summary}, comments=${typeof review.comments}`);
+  postPlainFallback('Kimi response shape was invalid', raw);
   if (checkId) {
     updateCheckRun(checkId, 'neutral', `${LABEL} review — invalid shape`, 'Agent response did not match expected JSON shape.');
   }
+  log.endGroup();
   process.exit(0);
 }
 
@@ -227,7 +275,8 @@ review.comments = review.comments.filter(
     c.body.trim().length > 0,
 );
 
-console.log(`Kimi CLI returned: ${review.comments.length} inline comments`);
+log.info(`Comments: ${review.comments.length}`);
+log.endGroup();
 
 // ── Severity emojis ─────────────────────────────────────────────────────────
 const SEVERITY_EMOJI = {
@@ -272,17 +321,19 @@ const checkDetails = [
 if (checkId) {
   try {
     updateCheckRun(checkId, checkConclusion, checkSummary, checkDetails);
-    console.log(`Updated check run #${checkId} → ${checkConclusion}`);
+    log.info(`Updated check run #${checkId} → ${checkConclusion}`);
   } catch (e) {
-    console.warn('Could not update check run:', e.message);
+    log.warn(`Could not update check run: ${e.message}`);
   }
 }
 
 // ── Post PR review ──────────────────────────────────────────────────────────
+log.startGroup('Post review to PR');
 if (review.comments.length === 0) {
   writeFileSync('/tmp/summary.md', summary);
   gh(['pr', 'comment', PR_NUMBER, '--repo', REPO, '--body-file', '/tmp/summary.md']);
-  console.log('Posted summary-only comment');
+  log.info('Posted summary-only comment');
+  log.endGroup();
   process.exit(0);
 }
 
@@ -309,10 +360,10 @@ try {
     '--input',
     '/tmp/review.json',
   ]);
-  console.log('Posted review with inline comments');
+  log.info('Posted review with inline comments');
 } catch (err) {
-  console.warn('Inline review API rejected the request; falling back to summary comment.');
-  console.warn(err.stderr?.toString?.() || err.message);
+  log.warn('Inline review API rejected the request; falling back to summary comment.');
+  log.warn(err.stderr?.toString?.() || err.message);
   const fallback = [
     summary,
     '',
@@ -325,3 +376,4 @@ try {
   writeFileSync('/tmp/fallback.md', fallback);
   gh(['pr', 'comment', PR_NUMBER, '--repo', REPO, '--body-file', '/tmp/fallback.md']);
 }
+log.endGroup();

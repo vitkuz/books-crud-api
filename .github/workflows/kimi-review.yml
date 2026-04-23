@@ -65,6 +65,10 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install review script deps
+        run: npm install @actions/core
+        working-directory: .github/scripts
+
       - name: Run Kimi reviewer
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
