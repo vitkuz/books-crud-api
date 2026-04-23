@@ -55,9 +55,6 @@ jobs:
         with:
           ref: ${{ steps.pr.outputs.head_ref }}
 
-      - name: Install Kimi CLI
-        run: pip install kimi-cli
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -69,5 +66,5 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
-          MODEL: auto
+          MODEL: kimi-for-coding
         run: node .github/scripts/kimi-review.mjs
