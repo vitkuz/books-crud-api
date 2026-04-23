@@ -10,6 +10,8 @@ export type Author = {
 
 export type AuthorResponse = Author;
 
+export type AuthorPatch = Partial<Omit<Author, 'id' | 'metadata'>>;
+
 export type CreateAuthorPayload = z.infer<typeof createAuthorSchema>;
 export type UpdateAuthorPayload = z.infer<typeof updateAuthorSchema>;
 

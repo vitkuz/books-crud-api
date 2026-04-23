@@ -22,6 +22,8 @@ export type BookResponse = {
   metadata: Metadata;
 };
 
+export type BookPatch = Partial<Omit<Book, 'id' | 'metadata'>>;
+
 export type CreateBookPayload = z.infer<typeof createBookSchema>;
 export type UpdateBookPayload = z.infer<typeof updateBookSchema>;
 

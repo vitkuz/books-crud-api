@@ -10,6 +10,8 @@ export type Category = {
 
 export type CategoryResponse = Category;
 
+export type CategoryPatch = Partial<Omit<Category, 'id' | 'metadata'>>;
+
 export type CreateCategoryPayload = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryPayload = z.infer<typeof updateCategorySchema>;
 

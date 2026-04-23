@@ -1,8 +1,6 @@
-import { Category } from './categories.types';
+import { Category, CategoryPatch } from './categories.types';
 
 const store: Map<string, Category> = new Map<string, Category>();
-
-export type CategoryPatch = Partial<Omit<Category, 'id' | 'metadata'>>;
 
 export const insertCategory = (category: Category): Category => {
   store.set(category.id, category);

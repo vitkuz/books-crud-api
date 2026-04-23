@@ -1,8 +1,6 @@
-import { Book } from './books.types';
+import { Book, BookPatch } from './books.types';
 
 const store: Map<string, Book> = new Map<string, Book>();
-
-export type BookPatch = Partial<Omit<Book, 'id' | 'metadata'>>;
 
 export const insertBook = (book: Book): Book => {
   store.set(book.id, book);

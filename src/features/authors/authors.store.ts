@@ -1,8 +1,6 @@
-import { Author } from './authors.types';
+import { Author, AuthorPatch } from './authors.types';
 
 const store: Map<string, Author> = new Map<string, Author>();
-
-export type AuthorPatch = Partial<Omit<Author, 'id' | 'metadata'>>;
 
 export const insertAuthor = (author: Author): Author => {
   store.set(author.id, author);
