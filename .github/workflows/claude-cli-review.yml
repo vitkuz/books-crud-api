@@ -1,0 +1,79 @@
+name: Claude CLI PR Review
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    if: ${{ github.event.issue.pull_request && (startsWith(github.event.comment.body, '/claude-cli-review') || startsWith(github.event.comment.body, ' /claude-cli-review')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      checks: write
+    steps:
+      - name: React to trigger comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
+            -f content=eyes
+
+      - name: Post job link
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/$REPO/issues/$PR_ISSUE_NUMBER/comments" \
+            -f body="▶️ \`/claude-cli-review\` running — [view job logs]($RUN_URL)"
+
+      - name: Resolve PR refs
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          META=$(gh pr view "$PR_ISSUE_NUMBER" \
+            --repo "$REPO" \
+            --json headRefName,baseRefName,headRefOid)
+          echo "number=$PR_ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$(echo "$META" | jq -r .headRefName)" >> "$GITHUB_OUTPUT"
+          echo "base_ref=$(echo "$META" | jq -r .baseRefName)" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$(echo "$META" | jq -r .headRefOid)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.pr.outputs.head_ref }}
+          fetch-depth: 0
+
+      - name: Ensure base ref is fetched
+        run: git fetch --no-tags --depth=1 origin "${{ steps.pr.outputs.base_ref }}"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run Claude CLI reviewer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          CLAUDE_MODEL: claude-opus-4-7
+        run: node .github/scripts/claude-cli-review.mjs
