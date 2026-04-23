@@ -189,8 +189,8 @@ if (costEst) {
   console.log(`Estimated cost: ~$${costEst.costUSD.toFixed(4)} (${costEst.inputTokens} input tokens)`);
 }
 
-// ── Write prompt to file ────────────────────────────────────────────────────
-const promptFile = '/tmp/gemini-review-prompt.txt';
+// ── Write prompt to file inside workspace (Gemini CLI is sandboxed) ─────────
+const promptFile = './.review-prompt.tmp.txt';
 writeFileSync(promptFile, prompt);
 
 // ── Invoke Gemini CLI ───────────────────────────────────────────────────────

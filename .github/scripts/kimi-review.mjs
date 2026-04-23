@@ -136,7 +136,7 @@ if (costEst) {
 }
 
 // ── Write prompt to file ────────────────────────────────────────────────────
-const promptFile = '/tmp/kimi-review-prompt.txt';
+const promptFile = './.review-prompt.tmp.txt';
 writeFileSync(promptFile, prompt);
 
 // ── Invoke Kimi CLI ─────────────────────────────────────────────────────────

@@ -191,7 +191,7 @@ if (costEst) {
 }
 
 // ── Write prompt to file ────────────────────────────────────────────────────
-const promptFile = '/tmp/copilot-review-prompt.txt';
+const promptFile = './.review-prompt.tmp.txt';
 writeFileSync(promptFile, prompt);
 
 // ── Invoke GitHub Copilot CLI ───────────────────────────────────────────────

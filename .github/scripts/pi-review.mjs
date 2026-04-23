@@ -234,7 +234,7 @@ if (costEst) {
 }
 
 // ── Write prompt to file (avoid leaking in ps) ─────────────────────────────
-const promptFile = '/tmp/pi-review-prompt.txt';
+const promptFile = './.review-prompt.tmp.txt';
 writeFileSync(promptFile, prompt);
 
 // ── Invoke pi agent ─────────────────────────────────────────────────────────
