@@ -29,19 +29,6 @@ if (!/^\d+$/.test(PR_NUMBER)) {
   throw new Error(`PR_NUMBER must be a positive integer, got: ${PR_NUMBER}`);
 }
 
-// ── Pricing (Anthropic list price per 1M tokens, used only if the CLI does
-//    not report total_cost_usd in its final result event) ───────────────────
-const PRICING = {
-  'claude-opus-4-7':           { input: 15, output: 75 },
-  'claude-sonnet-4-6':         { input:  3, output: 15 },
-  'claude-haiku-4-5-20251001': { input:  1, output:  5 },
-};
-
-const estimateCost = (model, inputTokens, outputTokens) => {
-  const p = PRICING[model] || PRICING['claude-opus-4-7'];
-  return (inputTokens * p.input + outputTokens * p.output) / 1_000_000;
-};
-
 // ── Shell helpers ───────────────────────────────────────────────────────────
 const run = (file, args, opts = {}) =>
   execFileSync(file, args, { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024, ...opts });
@@ -317,7 +304,7 @@ const summarizeToolInput = (name, input) => {
   return truncate(JSON.stringify(input), 200);
 };
 
-const usage = { inputTokens: 0, outputTokens: 0, costUSD: null, reportedCost: false };
+const usage = { inputTokens: 0, outputTokens: 0, costUSD: null };
 let lastErrorText = null;
 let launchFailed = false;
 
@@ -374,17 +361,13 @@ rl.on('line', (line) => {
     }
     if (typeof evt.total_cost_usd === 'number') {
       usage.costUSD = evt.total_cost_usd;
-      usage.reportedCost = true;
-    } else {
-      usage.costUSD = estimateCost(MODEL, usage.inputTokens, usage.outputTokens);
     }
     if (evt.subtype && evt.subtype !== 'success') {
       lastErrorText = evt.result || evt.error || evt.subtype;
     }
     console.log(
       `🏁 ${evt.subtype || 'result'} — in=${usage.inputTokens}tok out=${usage.outputTokens}tok ` +
-      `cost=$${(usage.costUSD ?? 0).toFixed(4)}${usage.reportedCost ? '' : ' (est.)'} ` +
-      `duration=${evt.duration_ms || 0}ms`
+      `cost=$${(usage.costUSD ?? 0).toFixed(4)} duration=${evt.duration_ms || 0}ms`
     );
     return;
   }
@@ -407,7 +390,7 @@ const [exitCode] = await Promise.all([
 
 // ── Report out ─────────────────────────────────────────────────────────────
 const costLine = usage.costUSD != null
-  ? `model=\`${MODEL}\` · input=${usage.inputTokens.toLocaleString()}tok · output=${usage.outputTokens.toLocaleString()}tok · cost=$${usage.costUSD.toFixed(4)}${usage.reportedCost ? '' : ' _(estimated)_'}`
+  ? `model=\`${MODEL}\` · input=${usage.inputTokens.toLocaleString()}tok · output=${usage.outputTokens.toLocaleString()}tok · cost=$${usage.costUSD.toFixed(4)}`
   : `model=\`${MODEL}\` · cost unavailable`;
 
 if (exitCode !== 0 || launchFailed) {
