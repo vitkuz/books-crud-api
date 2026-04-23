@@ -9,8 +9,7 @@ export const createCategory = (payload: CreateCategoryPayload): Category => {
   const category: Category = {
     id: uuidv4(),
     name: payload.name,
-    createdAt: now,
-    updatedAt: now,
+    metadata: { createdAt: now, updatedAt: now },
   };
   const inserted: Category = insertCategory(category);
   logger.debug('create-category.service success', { id: inserted.id });

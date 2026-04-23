@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Metadata } from '../../shared/types/metadata.types';
 import { Author } from '../authors/authors.types';
 import { Category } from '../categories/categories.types';
 import { createBookSchema, updateBookSchema } from './books.schema';
@@ -9,8 +10,7 @@ export type Book = {
   authorId: string;
   categoryIds: string[];
   year: number;
-  createdAt: string;
-  updatedAt: string;
+  metadata: Metadata;
 };
 
 export type BookResponse = {
@@ -19,9 +19,10 @@ export type BookResponse = {
   author: Author;
   categories: Category[];
   year: number;
-  createdAt: string;
-  updatedAt: string;
+  metadata: Metadata;
 };
+
+export type BookPatch = Partial<Omit<Book, 'id' | 'metadata'>>;
 
 export type CreateBookPayload = z.infer<typeof createBookSchema>;
 export type UpdateBookPayload = z.infer<typeof updateBookSchema>;

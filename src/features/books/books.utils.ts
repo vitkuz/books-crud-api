@@ -26,8 +26,7 @@ export const toBookResponse = (book: Book): BookResponse => {
     author,
     categories,
     year: book.year,
-    createdAt: book.createdAt,
-    updatedAt: book.updatedAt,
+    metadata: book.metadata,
   };
 };
 

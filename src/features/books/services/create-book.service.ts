@@ -24,8 +24,7 @@ export const createBook = (payload: CreateBookPayload): CreateBookResult => {
     authorId: payload.authorId,
     categoryIds,
     year: payload.year,
-    createdAt: now,
-    updatedAt: now,
+    metadata: { createdAt: now, updatedAt: now },
   };
   const inserted: Book = insertBook(book);
   logger.debug('create-book.service success', { id: inserted.id });

@@ -1,14 +1,16 @@
 import { z } from 'zod';
+import { Metadata } from '../../shared/types/metadata.types';
 import { createAuthorSchema, updateAuthorSchema } from './authors.schema';
 
 export type Author = {
   id: string;
   name: string;
-  createdAt: string;
-  updatedAt: string;
+  metadata: Metadata;
 };
 
 export type AuthorResponse = Author;
+
+export type AuthorPatch = Partial<Omit<Author, 'id' | 'metadata'>>;
 
 export type CreateAuthorPayload = z.infer<typeof createAuthorSchema>;
 export type UpdateAuthorPayload = z.infer<typeof updateAuthorSchema>;

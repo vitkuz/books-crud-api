@@ -4,8 +4,7 @@ import { Author, UpdateAuthorPayload } from '../authors.types';
 
 export const updateAuthor = (id: string, payload: UpdateAuthorPayload): Author | undefined => {
   logger.debug('update-author.service start', { id, payload });
-  const now: string = new Date().toISOString();
-  const updated: Author | undefined = replaceAuthor(id, { ...payload, updatedAt: now });
+  const updated: Author | undefined = replaceAuthor(id, payload);
   if (!updated) {
     logger.debug('update-author.service not-found', { id });
     return undefined;

@@ -1,4 +1,4 @@
-import { Book } from './books.types';
+import { Book, BookPatch } from './books.types';
 
 const store: Map<string, Book> = new Map<string, Book>();
 
@@ -11,10 +11,18 @@ export const findAllBooks = (): Book[] => Array.from(store.values());
 
 export const findBookById = (id: string): Book | undefined => store.get(id);
 
-export const replaceBook = (id: string, patch: Partial<Book>): Book | undefined => {
+export const replaceBook = (id: string, patch: BookPatch): Book | undefined => {
   const existing: Book | undefined = store.get(id);
   if (!existing) return undefined;
-  const updated: Book = { ...existing, ...patch, id: existing.id, createdAt: existing.createdAt };
+  const updated: Book = {
+    ...existing,
+    ...patch,
+    id: existing.id,
+    metadata: {
+      createdAt: existing.metadata.createdAt,
+      updatedAt: new Date().toISOString(),
+    },
+  };
   store.set(id, updated);
   return updated;
 };
