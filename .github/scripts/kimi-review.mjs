@@ -152,16 +152,20 @@ const result = spawnSync(
 );
 
 if (result.status !== 0) {
+  console.warn(`Kimi CLI exited with status ${result.status} (will try to parse stdout anyway)`);
+}
+
+let raw = result.stdout?.trim() || '';
+
+if (!raw && result.status !== 0) {
   const stderr = result.stderr?.trim() || '(no stderr)';
-  console.error(`Kimi CLI exited with status ${result.status}`);
+  console.error('Kimi CLI failed with empty stdout');
   console.error(`Kimi stderr: ${stderr}`);
   if (checkId) {
-    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, `Kimi CLI exited with status ${result.status}. stderr: ${stderr.slice(0, 500)}`);
+    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, `Kimi CLI exited ${result.status} with empty stdout. stderr: ${stderr.slice(0, 500)}`);
   }
   process.exit(result.status ?? 1);
 }
-
-let raw = result.stdout.trim();
 
 // Strip the "To resume this session" footer
 const resumeLine = raw.indexOf('\nTo resume this session:');
