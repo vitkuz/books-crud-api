@@ -6,7 +6,7 @@ on:
 
 jobs:
   review:
-    if: ${{ github.event.issue.pull_request && (startsWith(github.event.comment.body, '/claude-cli-review') || startsWith(github.event.comment.body, ' /claude-cli-review')) }}
+    if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/claude-cli-review') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -75,5 +75,5 @@ jobs:
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
           HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
-          CLAUDE_MODEL: claude-opus-4-7
+          CLAUDE_MODEL: claude-sonnet-4-6
         run: node .github/scripts/claude-cli-review.mjs
