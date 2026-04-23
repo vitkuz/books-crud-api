@@ -1,8 +1,10 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
 import logger from './shared/utils/logger';
 import { authorsRouter } from './features/authors';
+import { authRouter, initRouter } from './features/auth';
 import { booksRouter } from './features/books';
 import { categoriesRouter } from './features/categories';
+import { usersRouter } from './features/users';
 
 export const createApp = (): Application => {
   const app: Application = express();
@@ -19,6 +21,9 @@ export const createApp = (): Application => {
   app.use('/authors', authorsRouter);
   app.use('/categories', categoriesRouter);
   app.use('/books', booksRouter);
+  app.use('/users', usersRouter);
+  app.use('/auth', authRouter);
+  app.use('/init', initRouter);
 
   app.use((_req: Request, res: Response): Response => res.status(404).json({ error: 'NotFound' }));
 

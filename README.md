@@ -116,6 +116,37 @@ type BookResponse = {
 - Returns **400 InvalidCategoryIds** if any `categoryIds` entry doesn't reference an existing category.
 - `POST /books/batch` silently skips unknown ids; enforces 1 ≤ `ids.length` ≤ 100. Response is already populated with `author` and `categories`.
 
+### Users
+
+| Method | Path          | Body                                   | Returns         |
+| ------ | ------------- | -------------------------------------- | --------------- |
+| GET    | `/users`      | —                                      | `UserResponse[]` |
+| POST   | `/users`      | `{ email, password, name? }`           | `UserResponse`   |
+| GET    | `/users/:id`  | —                                      | `UserResponse`   |
+| PUT    | `/users/:id`  | partial `{ email?, password?, name? }` | `UserResponse`   |
+| DELETE | `/users/:id`  | —                                      | 204              |
+
+`passwordHash` is never serialized. Email must be unique (case-insensitive).
+
+### Auth
+
+| Method | Path             | Body                          | Returns                         |
+| ------ | ---------------- | ----------------------------- | ------------------------------- |
+| POST   | `/auth/register` | `{ email, password, name? }`  | `{ user: UserResponse, token }` |
+| POST   | `/auth/login`    | `{ email, password }`         | `{ user: UserResponse, token }` |
+| POST   | `/auth/logout`   | —                             | 204                             |
+| GET    | `/auth/me`       | —                             | `UserResponse`                  |
+
+`POST /auth/logout` and `GET /auth/me` require `Authorization: Bearer <token>`. Sessions are in-memory and have no expiry. Invalid credentials on `/auth/login` return 401 with no distinction between "unknown email" and "wrong password".
+
+### Bootstrap
+
+| Method | Path    | Body | Returns                                      |
+| ------ | ------- | ---- | -------------------------------------------- |
+| POST   | `/init` | —    | `{ user: UserResponse, password, token }` \| 409 |
+
+Generates a random first admin when the system has zero users. The password is returned in the response **once** — there is no way to recover it afterward. Subsequent calls return 409.
+
 ### Other
 
 | Method | Path       | Returns        |
