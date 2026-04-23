@@ -25,17 +25,20 @@ jobs:
             -f content=eyes
 
       - name: Post job link
+        id: jobcomment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_ISSUE_NUMBER: ${{ github.event.issue.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh api \
+          COMMENT_ID=$(gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             "/repos/$REPO/issues/$PR_ISSUE_NUMBER/comments" \
-            -f body="▶️ \`/claude-cli-review\` running — [view job logs]($RUN_URL)"
+            -f body="▶️ \`/claude-cli-review\` running — [view job logs]($RUN_URL)" \
+            --jq '.id')
+          echo "comment_id=$COMMENT_ID" >> "$GITHUB_OUTPUT"
 
       - name: Resolve PR refs
         id: pr
@@ -77,3 +80,24 @@ jobs:
           HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
           CLAUDE_MODEL: claude-sonnet-4-6
         run: node .github/scripts/claude-cli-review.mjs
+
+      - name: Update job-link comment
+        if: always() && steps.jobcomment.outputs.comment_id != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          COMMENT_ID: ${{ steps.jobcomment.outputs.comment_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          case "$JOB_STATUS" in
+            success)   ICON="✅"; STATE="complete" ;;
+            failure)   ICON="❌"; STATE="failed"   ;;
+            cancelled) ICON="⚪"; STATE="cancelled" ;;
+            *)         ICON="⚠️"; STATE="$JOB_STATUS" ;;
+          esac
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/$REPO/issues/comments/$COMMENT_ID" \
+            -f body="$ICON \`/claude-cli-review\` $STATE — [view job logs]($RUN_URL)"
