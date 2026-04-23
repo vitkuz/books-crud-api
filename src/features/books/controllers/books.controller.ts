@@ -52,6 +52,11 @@ export const getBooks = (_req: Request, res: Response): Response => {
   return res.status(200).json(body);
 };
 
+export const getBooksCount = (_req: Request, res: Response): Response => {
+  const count: number = booksService.countBooks();
+  return res.status(200).json({ count });
+};
+
 export const postBooksBatch = (req: Request, res: Response): Response => {
   const parsed: ReturnType<typeof batchBooksSchema.safeParse> = batchBooksSchema.safeParse(
     req.body,
