@@ -31,3 +31,6 @@ coverage/
 # CI / GitHub metadata
 .github/workflows/*.yml
 dist/
+
+# Intentionally unreviewed (sandbox / throwaway code)
+src/evil/
