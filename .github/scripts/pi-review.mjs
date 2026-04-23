@@ -244,7 +244,8 @@ const piResult = spawnSync(
   [
     '-y',
     '@mariozechner/pi-coding-agent',
-    '-p', `@{${promptFile}}`,
+    '-p',
+    `@${promptFile}`,
     '--provider',
     PI_PROVIDER,
     '--model',

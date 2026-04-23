@@ -199,7 +199,8 @@ console.log(`Invoking GitHub Copilot CLI (${MODEL})...`);
 const result = spawnSync(
   'copilot',
   [
-    '-p', `@{${promptFile}}`,
+    '-p',
+    `@${promptFile}`,
     '--model',
     MODEL,
     '--allow-all-tools',

@@ -200,7 +200,8 @@ const result = spawnSync(
   [
     '-y',
     '@google/gemini-cli@0.38.2',
-    '-p', `@{${promptFile}}`,
+    '-p',
+    `@${promptFile}`,
     '-m',
     MODEL,
     '--approval-mode',
