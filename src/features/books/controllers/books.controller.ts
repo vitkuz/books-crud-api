@@ -30,6 +30,12 @@ const invalidCategoryIds = (res: Response, missingIds: string[]): Response =>
     message: `One or more categoryIds do not reference existing categories: ${missingIds.join(', ')}`,
   });
 
+const invalidTagIds = (res: Response, missingIds: string[]): Response =>
+  res.status(400).json({
+    error: 'InvalidTagIds',
+    message: `One or more tagIds do not reference existing tags: ${missingIds.join(', ')}`,
+  });
+
 export const postBook = (req: Request, res: Response): Response => {
   const parsed: ReturnType<typeof createBookSchema.safeParse> = createBookSchema.safeParse(
     req.body,
@@ -40,6 +46,9 @@ export const postBook = (req: Request, res: Response): Response => {
   if (!result.ok && result.error === 'AUTHOR_NOT_FOUND') return authorNotFound(res);
   if (!result.ok && result.error === 'INVALID_CATEGORY_IDS') {
     return invalidCategoryIds(res, result.missingIds);
+  }
+  if (!result.ok && result.error === 'INVALID_TAG_IDS') {
+    return invalidTagIds(res, result.missingIds);
   }
   if (!result.ok) return res.status(500).json({ error: 'InternalServerError' });
   const body: BookResponse = toBookResponse(result.book);
@@ -92,6 +101,9 @@ export const putBook = (req: Request, res: Response): Response => {
   }
   if (!result.ok && result.error === 'INVALID_CATEGORY_IDS') {
     return invalidCategoryIds(res, result.missingIds);
+  }
+  if (!result.ok && result.error === 'INVALID_TAG_IDS') {
+    return invalidTagIds(res, result.missingIds);
   }
   if (!result.ok) return res.status(500).json({ error: 'InternalServerError' });
   const body: BookResponse = toBookResponse(result.book);
