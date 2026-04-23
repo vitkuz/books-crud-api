@@ -1,12 +1,9 @@
 #!/usr/bin/env node
-import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const { REPO, PR_NUMBER, MOONSHOT_API_KEY, GITHUB_TOKEN } = process.env;
-const MODEL = process.env.MODEL || 'moonshot-v1-128k';
 const LABEL = 'Kimi';
-const BASE_URL = 'https://api.moonshot.cn/v1';
 
 if (!MOONSHOT_API_KEY) throw new Error('MOONSHOT_API_KEY is required');
 if (!REPO) throw new Error('REPO is required');
@@ -20,16 +17,10 @@ if (!/^\d+$/.test(PR_NUMBER)) {
 }
 
 // ── Pricing table (per 1M tokens, USD) ──────────────────────────────────────
-// Kimi Code pricing is subscription-based; these are rough API estimates
-const PRICING = {
-  'moonshot-v1-8k': { input: 0.60, output: 0.60 },
-  'moonshot-v1-32k': { input: 0.60, output: 0.60 },
-  'moonshot-v1-128k': { input: 0.60, output: 0.60 },
-};
+const PRICING = { 'moonshot-ai/kimi-k2.6': { input: 0.60, output: 0.60 } };
 
-function estimateCost(model, promptChars, outputChars = 4000) {
-  const p = PRICING[model];
-  if (!p) return null;
+function estimateCost(promptChars, outputChars = 4000) {
+  const p = PRICING['moonshot-ai/kimi-k2.6'];
   const inputTokens = Math.ceil(promptChars / 4);
   const outputTokens = Math.ceil(outputChars / 4);
   const cost = (inputTokens * p.input + outputTokens * p.output) / 1_000_000;
@@ -118,7 +109,9 @@ const conventionsBlock = conventions
   ? `Project conventions to enforce (from CLAUDE.md):\n---\n${conventions}\n---\n\n`
   : '';
 
-const userPrompt = [
+const promptParts = [
+  systemPrompt,
+  '',
   `Repository: ${REPO}`,
   `PR #${PR_NUMBER}: ${pr.title}`,
   '',
@@ -132,192 +125,65 @@ const userPrompt = [
   truncated ? '\n(NOTE: no diff available.)' : '',
   '',
   reviewInstructions,
-].filter(Boolean).join('\n');
+].filter(Boolean);
 
-// ── Tool definitions ────────────────────────────────────────────────────────
-const TOOLS = [
-  {
-    type: 'function',
-    function: {
-      name: 'read_file',
-      description: 'Read the contents of a file',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: { type: 'string', description: 'Relative file path' },
-        },
-        required: ['path'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'list_directory',
-      description: 'List files in a directory',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: { type: 'string', description: 'Relative directory path' },
-        },
-        required: ['path'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'grep',
-      description: 'Search for a pattern in files',
-      parameters: {
-        type: 'object',
-        properties: {
-          pattern: { type: 'string', description: 'Regex pattern to search' },
-          path: { type: 'string', description: 'Directory or file to search (optional)' },
-        },
-        required: ['pattern'],
-      },
-    },
-  },
-];
+const prompt = promptParts.join('\n');
 
-function executeTool(call) {
-  const name = call.function.name;
-  const args = JSON.parse(call.function.arguments);
-  console.log(`Tool call: ${name}(${JSON.stringify(args)})`);
-
-  try {
-    switch (name) {
-      case 'read_file': {
-        const p = args.path;
-        if (!existsSync(p)) return { error: `File not found: ${p}` };
-        const content = readFileSync(p, 'utf8');
-        return { content: content.slice(0, 50000) };
-      }
-      case 'list_directory': {
-        const p = args.path || '.';
-        if (!existsSync(p)) return { error: `Directory not found: ${p}` };
-        const entries = readdirSync(p).map((e) => {
-          const s = statSync(join(p, e));
-          return { name: e, type: s.isDirectory() ? 'dir' : 'file' };
-        });
-        return { entries };
-      }
-      case 'grep': {
-        const pattern = args.pattern;
-        const path = args.path || '.';
-        try {
-          const results = run('grep', ['-rn', pattern, path]);
-          return { matches: results.split('\n').filter(Boolean).slice(0, 50) };
-        } catch (e) {
-          return { matches: [] };
-        }
-      }
-      default:
-        return { error: `Unknown tool: ${name}` };
-    }
-  } catch (err) {
-    return { error: err.message };
-  }
-}
-
-// ── Kimi agent loop ─────────────────────────────────────────────────────────
-async function runKimiAgent() {
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: userPrompt },
-  ];
-
-  let totalInputChars = systemPrompt.length + userPrompt.length;
-  let totalOutputChars = 0;
-  const maxRounds = 10;
-
-  for (let round = 0; round < maxRounds; round++) {
-    console.log(`Agent round ${round + 1}/${maxRounds}...`);
-
-    const response = await fetch(`${BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MOONSHOT_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages,
-        tools: TOOLS,
-        tool_choice: 'auto',
-        temperature: 0.2,
-        max_tokens: 4096,
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Kimi API error ${response.status}: ${errText}`);
-    }
-
-    const data = await response.json();
-    const choice = data.choices[0];
-    const message = choice.message;
-
-    totalOutputChars += message.content?.length || 0;
-
-    if (message.tool_calls && message.tool_calls.length > 0) {
-      messages.push(message);
-
-      for (const toolCall of message.tool_calls) {
-        const result = executeTool(toolCall);
-        messages.push({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          name: toolCall.function.name,
-          content: JSON.stringify(result),
-        });
-        totalInputChars += JSON.stringify(result).length;
-      }
-      continue;
-    }
-
-    const costEst = estimateCost(MODEL, totalInputChars, totalOutputChars);
-    return { content: message.content || '', costEst };
-  }
-
-  throw new Error(`Agent exceeded ${maxRounds} rounds without returning final review`);
-}
-
-// ── Run the agent ───────────────────────────────────────────────────────────
-console.log(`Starting Kimi agent (${MODEL}) via ${BASE_URL}...`);
-let result;
-try {
-  result = await runKimiAgent();
-} catch (err) {
-  console.error('Kimi agent failed:', err.message);
-  if (checkId) {
-    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, err.message);
-  }
-  process.exit(1);
-}
-
-const { content: raw, costEst } = result;
-console.log(`Kimi response length: ${raw.length} chars`);
+// ── Cost estimate ───────────────────────────────────────────────────────────
+const costEst = estimateCost(prompt.length);
 if (costEst) {
-  console.log(`Estimated cost: ~$${costEst.costUSD.toFixed(4)} (${costEst.inputTokens} input / ${costEst.outputTokens} output tokens)`);
+  console.log(`Estimated cost: ~$${costEst.costUSD.toFixed(4)} (${costEst.inputTokens} input tokens)`);
 }
 
-// ── Parse JSON ──────────────────────────────────────────────────────────────
-let cleaned = raw.trim();
-const fenceMatch = cleaned.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
-if (fenceMatch) cleaned = fenceMatch[1].trim();
+// ── Write prompt to file ────────────────────────────────────────────────────
+const promptFile = '/tmp/kimi-review-prompt.txt';
+writeFileSync(promptFile, prompt);
 
-const firstBrace = cleaned.indexOf('{');
-const lastBrace = cleaned.lastIndexOf('}');
+// ── Invoke Kimi CLI ─────────────────────────────────────────────────────────
+console.log('Invoking Kimi CLI...');
+const result = spawnSync(
+  'kimi',
+  [
+    '--quiet',
+    '-p', `@{${promptFile}}`,
+    '-w', '.',
+  ],
+  {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'inherit'],
+    maxBuffer: 50 * 1024 * 1024,
+    env: { ...process.env, MOONSHOT_API_KEY },
+  },
+);
+
+if (result.status !== 0) {
+  console.error(`Kimi CLI exited with status ${result.status}`);
+  if (checkId) {
+    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, `Kimi CLI exited with status ${result.status}`);
+  }
+  process.exit(result.status ?? 1);
+}
+
+let raw = result.stdout.trim();
+
+// Strip the "To resume this session" footer
+const resumeLine = raw.indexOf('\nTo resume this session:');
+if (resumeLine !== -1) {
+  raw = raw.slice(0, resumeLine).trim();
+}
+
+const fenceMatch = raw.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
+if (fenceMatch) raw = fenceMatch[1].trim();
+
+const firstBrace = raw.indexOf('{');
+const lastBrace = raw.lastIndexOf('}');
 const candidate = firstBrace !== -1 && lastBrace > firstBrace
-  ? cleaned.slice(firstBrace, lastBrace + 1)
+  ? raw.slice(firstBrace, lastBrace + 1)
   : '';
 
 const postPlainFallback = (reason, body) => {
   const fallback = [
-    `## 🤖 Kimi agent review — ${LABEL} (${MODEL})`,
+    `## 🤖 Kimi CLI review — ${LABEL}`,
     '',
     `_Note: ${reason}. Posting the agent's raw output as a single comment — no inline annotations this run._`,
     costEst ? `_Estimated cost: ~$${costEst.costUSD.toFixed(4)}_` : '',
@@ -330,11 +196,11 @@ const postPlainFallback = (reason, body) => {
 
 let review;
 try {
-  review = JSON.parse(candidate || cleaned);
+  review = JSON.parse(candidate || raw);
 } catch (err) {
-  console.warn('Kimi output was not valid JSON:', err.message);
-  console.warn('Raw (first 2000 chars):\n', cleaned.slice(0, 2000));
-  postPlainFallback('Kimi returned free-form text instead of structured JSON', raw);
+  console.warn('Kimi CLI output was not valid JSON:', err.message);
+  console.warn('Raw (first 2000 chars):\n', raw.slice(0, 2000));
+  postPlainFallback('Kimi CLI returned free-form text instead of structured JSON', raw);
   if (checkId) {
     updateCheckRun(checkId, 'neutral', `${LABEL} review — parse error`, 'Could not parse agent output as JSON.');
   }
@@ -343,7 +209,7 @@ try {
 
 if (typeof review.summary !== 'string' || !Array.isArray(review.comments)) {
   console.warn('Kimi response shape was invalid:', review);
-  postPlainFallback('Kimi response shape was invalid', raw);
+  postPlainFallback('Kimi CLI response shape was invalid', raw);
   if (checkId) {
     updateCheckRun(checkId, 'neutral', `${LABEL} review — invalid shape`, 'Agent response did not match expected JSON shape.');
   }
@@ -360,7 +226,7 @@ review.comments = review.comments.filter(
     c.body.trim().length > 0,
 );
 
-console.log(`Kimi returned: ${review.comments.length} inline comments`);
+console.log(`Kimi CLI returned: ${review.comments.length} inline comments`);
 
 // ── Severity emojis ─────────────────────────────────────────────────────────
 const SEVERITY_EMOJI = {
@@ -376,7 +242,7 @@ function formatComment(c) {
 }
 
 const summary = [
-  `## 🤖 Kimi agent review — ${LABEL} (${MODEL})`,
+  `## 🤖 Kimi CLI review — ${LABEL}`,
   '',
   review.summary,
   truncated ? '\n_Note: no diff available for this PR._' : '',

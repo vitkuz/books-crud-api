@@ -55,6 +55,12 @@ jobs:
         with:
           ref: ${{ steps.pr.outputs.head_ref }}
 
+      - name: Install Kimi CLI
+        run: curl -LsSf https://code.kimi.com/install.sh | bash
+
+      - name: Add Kimi CLI to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -66,5 +72,4 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
-          MODEL: moonshot-v1-128k
         run: node .github/scripts/kimi-review.mjs
