@@ -96,8 +96,13 @@ jobs:
             cancelled) ICON="⚪"; STATE="cancelled" ;;
             *)         ICON="⚠️"; STATE="$JOB_STATUS" ;;
           esac
+          BODY="$ICON \`/claude-cli-review\` $STATE — [view job logs]($RUN_URL)"
+          if [ -f /tmp/cc-cost.txt ]; then
+            COST=$(cat /tmp/cc-cost.txt)
+            BODY="$BODY"$'\n\n'"_${COST}_"
+          fi
           gh api \
             --method PATCH \
             -H "Accept: application/vnd.github+json" \
             "/repos/$REPO/issues/comments/$COMMENT_ID" \
-            -f body="$ICON \`/claude-cli-review\` $STATE — [view job logs]($RUN_URL)"
+            -f body="$BODY"
