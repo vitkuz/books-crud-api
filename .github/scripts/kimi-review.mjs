@@ -145,16 +145,18 @@ const result = spawnSync(
   {
     encoding: 'utf8',
     input: prompt,
-    stdio: ['pipe', 'pipe', 'inherit'],
+    stdio: ['pipe', 'pipe', 'pipe'],
     maxBuffer: 50 * 1024 * 1024,
     env: { ...process.env, MOONSHOT_API_KEY },
   },
 );
 
 if (result.status !== 0) {
+  const stderr = result.stderr?.trim() || '(no stderr)';
   console.error(`Kimi CLI exited with status ${result.status}`);
+  console.error(`Kimi stderr: ${stderr}`);
   if (checkId) {
-    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, `Kimi CLI exited with status ${result.status}`);
+    updateCheckRun(checkId, 'failure', `${LABEL} review failed`, `Kimi CLI exited with status ${result.status}. stderr: ${stderr.slice(0, 500)}`);
   }
   process.exit(result.status ?? 1);
 }
