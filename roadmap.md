@@ -39,7 +39,7 @@ Add to `.github/pi-review/instructions.md`:
 (2) auto-prunes speculative/style-opinion findings that don't ground in any
 rule, raising signal-to-noise.
 
-### 2. Feed the PR title + body
+### 2. Feed the PR title + body *(shipped — commit `940aa6e`)*
 Pass intent alongside the diff. A lot of reviews are better with "what the
 author is trying to do" than with the diff alone.
 
