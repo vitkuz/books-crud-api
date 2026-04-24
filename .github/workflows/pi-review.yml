@@ -44,6 +44,11 @@ jobs:
             cat .github/pi-review/system-prompt.md
             echo
             cat .github/pi-review/instructions.md
+            if [ -f CLAUDE.md ]; then
+              echo
+              echo '## Project conventions (enforce these in the review):'
+              cat CLAUDE.md
+            fi
             echo
             echo 'Unified diff:'
             echo '```diff'
