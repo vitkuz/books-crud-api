@@ -33,10 +33,15 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Get PR diff
+      - name: Get PR diff + metadata
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr diff ${{ inputs.pr_number }} > diff.txt
+        run: |
+          gh pr diff ${{ inputs.pr_number }} > diff.txt
+          gh pr view ${{ inputs.pr_number }} \
+            --json title,body \
+            --jq '"# \(.title)\n\n\(.body // "_no description_")"' \
+            > pr-meta.md
 
       - name: Build prompt file
         run: |
@@ -49,6 +54,9 @@ jobs:
               echo '## Project conventions (enforce these in the review):'
               cat CLAUDE.md
             fi
+            echo
+            echo '## Pull request intent (what the author is trying to do):'
+            cat pr-meta.md
             echo
             echo 'Unified diff:'
             echo '```diff'
