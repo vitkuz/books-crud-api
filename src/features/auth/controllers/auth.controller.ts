@@ -10,7 +10,6 @@ import {
   RegisterPayload,
   RegisterResult,
 } from '../auth.types';
-import { extractBearerToken } from '../auth.utils';
 import * as authService from '../services';
 
 const badRequest = (res: Response, err: ZodError): Response =>
@@ -49,16 +48,12 @@ export const postLogin = (req: Request, res: Response): Response => {
 };
 
 export const postLogout = (req: Request, res: Response): Response => {
-  const token: string | undefined = extractBearerToken(req.header('authorization'));
-  if (!token) return unauthorized(res);
-  authService.logout(token);
+  authService.logout(req.auth!.token);
   return res.status(204).send();
 };
 
 export const getMe = (req: Request, res: Response): Response => {
-  const token: string | undefined = extractBearerToken(req.header('authorization'));
-  if (!token) return unauthorized(res);
-  const result: MeResult = authService.me(token);
+  const result: MeResult = authService.me(req.auth!.userId);
   if (!result.ok) return unauthorized(res);
   return res.status(200).json(result.user);
 };
