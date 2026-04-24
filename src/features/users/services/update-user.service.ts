@@ -6,7 +6,7 @@ import {
   User,
   UserPatch,
 } from '../users.types';
-import { hashPassword } from '../users.utils';
+import { hashPassword } from '../../../shared/utils/password';
 
 export const updateUser = (id: string, payload: UpdateUserPayload): UpdateUserResult => {
   logger.debug('update-user.service start', { id });
@@ -27,6 +27,7 @@ export const updateUser = (id: string, payload: UpdateUserPayload): UpdateUserRe
   if (payload.password !== undefined) patch.passwordHash = hashPassword(payload.password);
   const updated: User | undefined = replaceUser(id, patch);
   if (!updated) {
+    logger.debug('update-user.service not-found-on-replace', { id });
     return { ok: false, error: 'USER_NOT_FOUND' };
   }
   logger.debug('update-user.service success', { id });

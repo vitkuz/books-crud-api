@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { User, UserResponse } from '../users/users.types';
+import { UserResponse } from '../users/users.types';
 import { loginSchema, registerSchema } from './auth.schema';
 
 export type Session = {
@@ -12,7 +12,7 @@ export type LoginPayload = z.infer<typeof loginSchema>;
 
 export type AuthSuccess = {
   ok: true;
-  user: User;
+  user: UserResponse;
   token: string;
 };
 
@@ -25,11 +25,11 @@ export type LoginResult =
   | { ok: false; error: 'INVALID_CREDENTIALS' };
 
 export type MeResult =
-  | { ok: true; user: User }
+  | { ok: true; user: UserResponse }
   | { ok: false; error: 'UNAUTHORIZED' };
 
 export type InitResult =
-  | { ok: true; user: User; password: string; token: string }
+  | { ok: true; user: UserResponse; password: string; token: string }
   | { ok: false; error: 'ALREADY_INITIALIZED' };
 
 export type AuthResponseBody = {

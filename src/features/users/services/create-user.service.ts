@@ -6,7 +6,7 @@ import {
   CreateUserResult,
   User,
 } from '../users.types';
-import { hashPassword } from '../users.utils';
+import { hashPassword } from '../../../shared/utils/password';
 
 export const createUser = (payload: CreateUserPayload): CreateUserResult => {
   logger.debug('create-user.service start', { email: payload.email });

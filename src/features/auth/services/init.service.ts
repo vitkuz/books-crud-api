@@ -1,7 +1,10 @@
 import { randomBytes } from 'node:crypto';
+import { v4 as uuidv4 } from 'uuid';
 import logger from '../../../shared/utils/logger';
-import * as usersService from '../../users/services';
-import { countUsers } from '../../users/users.store';
+import { hashPassword } from '../../../shared/utils/password';
+import { toUserResponse } from '../../../shared/utils/user-mapper';
+import { countUsers, insertUser } from '../../users/users.store';
+import { User } from '../../users/users.types';
 import { createSession } from '../auth.store';
 import { InitResult } from '../auth.types';
 
@@ -20,14 +23,16 @@ export const init = (): InitResult => {
   }
   const email: string = generateEmail();
   const password: string = generatePassword();
-  const created = usersService.createUser({ email, password, name: 'Bootstrap Admin' });
-  if (!created.ok) {
-    // EMAIL_TAKEN here is practically unreachable — we just verified no users
-    // exist — but the type says we must handle it.
-    logger.error('init.service unexpected create failure', { error: created.error });
-    return { ok: false, error: 'ALREADY_INITIALIZED' };
-  }
-  const token: string = createSession(created.user.id);
-  logger.debug('init.service success', { id: created.user.id });
-  return { ok: true, user: created.user, password, token };
+  const now: string = new Date().toISOString();
+  const user: User = {
+    id: uuidv4(),
+    email,
+    passwordHash: hashPassword(password),
+    name: 'Bootstrap Admin',
+    metadata: { createdAt: now, updatedAt: now },
+  };
+  const inserted: User = insertUser(user);
+  const token: string = createSession(inserted.id);
+  logger.debug('init.service success', { id: inserted.id });
+  return { ok: true, user: toUserResponse(inserted), password, token };
 };

@@ -1,4 +1,5 @@
 import logger from '../../../shared/utils/logger';
+import { toUserResponse } from '../../../shared/utils/user-mapper';
 import { findUserById } from '../../users/users.store';
 import { User } from '../../users/users.types';
 import { findSession } from '../auth.store';
@@ -17,5 +18,5 @@ export const me = (token: string): MeResult => {
     return { ok: false, error: 'UNAUTHORIZED' };
   }
   logger.debug('me.service success', { id: user.id });
-  return { ok: true, user };
+  return { ok: true, user: toUserResponse(user) };
 };

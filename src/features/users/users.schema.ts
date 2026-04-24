@@ -7,8 +7,7 @@ export const createUserSchema = z.object({
 });
 
 export const updateUserSchema = createUserSchema.partial().refine(
-  (patch: Partial<{ email: string; password: string; name: string }>): boolean =>
-    Object.keys(patch).length > 0,
+  (patch): boolean => Object.keys(patch).length > 0,
   { message: 'At least one field must be provided' },
 );
 

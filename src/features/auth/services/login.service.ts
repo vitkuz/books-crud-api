@@ -1,7 +1,8 @@
 import logger from '../../../shared/utils/logger';
+import { verifyPassword } from '../../../shared/utils/password';
+import { toUserResponse } from '../../../shared/utils/user-mapper';
 import { findUserByEmail } from '../../users/users.store';
 import { User } from '../../users/users.types';
-import { verifyPassword } from '../../users/users.utils';
 import { createSession } from '../auth.store';
 import { LoginPayload, LoginResult } from '../auth.types';
 
@@ -14,5 +15,5 @@ export const login = (payload: LoginPayload): LoginResult => {
   }
   const token: string = createSession(user.id);
   logger.debug('login.service success', { id: user.id });
-  return { ok: true, user, token };
+  return { ok: true, user: toUserResponse(user), token };
 };

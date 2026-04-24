@@ -1,15 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
-import { User, UserResponse } from './users.types';
 
 const SCRYPT_KEY_LEN = 32;
 const SALT_BYTES = 16;
-
-export const toUserResponse = (user: User): UserResponse => ({
-  id: user.id,
-  email: user.email,
-  name: user.name,
-  metadata: user.metadata,
-});
 
 export const hashPassword = (plain: string): string => {
   const salt: string = randomBytes(SALT_BYTES).toString('hex');

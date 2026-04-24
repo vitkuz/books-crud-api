@@ -14,7 +14,7 @@ import {
   User,
   UserResponse,
 } from '../users.types';
-import { toUserResponse } from '../users.utils';
+import { toUserResponse } from '../../../shared/utils/user-mapper';
 
 const badRequest = (res: Response, err: ZodError): Response =>
   res.status(400).json({ error: 'ValidationError', issues: err.issues });

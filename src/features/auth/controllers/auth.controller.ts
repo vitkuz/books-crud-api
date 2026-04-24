@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { ZodError } from 'zod';
-import { toUserResponse } from '../../users/users.utils';
 import { loginSchema, registerSchema } from '../auth.schema';
 import {
   AuthResponseBody,
@@ -21,7 +20,7 @@ const unauthorized = (res: Response): Response =>
   res.status(401).json({ error: 'Unauthorized' });
 
 const toAuthBody = (result: AuthSuccess): AuthResponseBody => ({
-  user: toUserResponse(result.user),
+  user: result.user,
   token: result.token,
 });
 
@@ -61,5 +60,5 @@ export const getMe = (req: Request, res: Response): Response => {
   if (!token) return unauthorized(res);
   const result: MeResult = authService.me(token);
   if (!result.ok) return unauthorized(res);
-  return res.status(200).json(toUserResponse(result.user));
+  return res.status(200).json(result.user);
 };

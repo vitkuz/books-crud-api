@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { toUserResponse } from '../../users/users.utils';
 import { InitResult } from '../auth.types';
 import * as authService from '../services';
 
@@ -13,7 +12,7 @@ export const postInit = (_req: Request, res: Response): Response => {
   }
   if (!result.ok) return res.status(500).json({ error: 'InternalServerError' });
   return res.status(201).json({
-    user: toUserResponse(result.user),
+    user: result.user,
     password: result.password,
     token: result.token,
   });
