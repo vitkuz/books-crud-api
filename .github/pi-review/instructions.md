@@ -16,7 +16,16 @@ This section exists to help a human reviewer grasp the PR in seconds. Keep it sh
 One sentence on the overall verdict. Omit if the issue list alone is clearer.
 
 ## Issues
-Bulleted. Each bullet: `` `path/to/file.ext:LINE` `` — one-line concrete problem, quoting the offending code or naming the rule it violates.
+Bulleted. Each bullet starts with a severity emoji, then the file:line reference, then the problem:
+
+- 🔴 `` `path/to/file.ext:LINE` `` — one-line concrete problem. `[citation]`
+
+Severity legend:
+- 🔴 **critical** — bug, security issue, broken behavior, or a ship-blocker.
+- 🟡 **warning** — convention violation (a rule from `CLAUDE.md` or these instructions is broken). Should fix before merge.
+- 🟢 **nit** — minor / subjective / cosmetic. Optional.
+
+One emoji per bullet. Do not mix emojis or add extra decoration.
 
 ## What went well
 Only for non-obvious good decisions. Omit otherwise.
@@ -28,8 +37,8 @@ Improvements that are not bugs (clarity, naming, small refactors). Omit if none.
 
 Every bullet under `## Issues` and `## Suggestions` must end with a bracketed citation naming the source rule, e.g.
 
-- `` `foo.ts:10` `` — concrete problem. `[CLAUDE.md: cross-feature imports allowed only via *.store.ts]`
-- `` `bar.ts:42` `` — another problem. `[instructions.md: severity tags required]`
+- 🔴 `` `foo.ts:10` `` — concrete problem. `[CLAUDE.md: cross-feature imports allowed only via *.store.ts]`
+- 🟡 `` `bar.ts:42` `` — another problem. `[instructions.md: severity emoji required]`
 
 Paraphrase the rule briefly inside the brackets; do not just write `[CLAUDE.md]`. If a finding cannot be anchored to a written rule in `CLAUDE.md` or these instructions, **do not include it** — that includes general best-practice opinions, style preferences not in the rules, and speculative concerns.
 
