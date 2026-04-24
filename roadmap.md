@@ -6,7 +6,7 @@ commit so we can bisect if signal/noise regresses.
 
 ## Experiments (ordered smallest → biggest)
 
-### 1. Load `CLAUDE.md` into the prompt
+### 1. Load `CLAUDE.md` into the prompt *(shipped — commit `1e0da11`)*
 Pi agent doesn't pick up `CLAUDE.md` automatically. Inject it into the built
 prompt so project conventions become review rules.
 
@@ -22,6 +22,22 @@ fi
 
 **Why**: single biggest quality jump — all the "things to flag / not to flag"
 rules from `CLAUDE.md` suddenly become actionable for the agent.
+
+### 1.5. Require a rule citation on every bullet
+Observed on PR #29: `anthropic/opus` and `deepseek-chat` quote `CLAUDE.md`
+verbatim, while `sonnet` and the OpenAI models paraphrase without naming the
+source. Inconsistent — and paraphrases drift into general opinion.
+
+Add to `.github/pi-review/instructions.md`:
+
+> Every bullet under `## Issues` and `## Suggestions` must end with a bracketed
+> citation naming the source rule, e.g.
+> `[CLAUDE.md: cross-feature imports allowed only via *.store.ts]`.
+> If a finding cannot be anchored to a written rule, do not include it.
+
+**Why**: (1) forces weaker models to quote instead of paraphrase;
+(2) auto-prunes speculative/style-opinion findings that don't ground in any
+rule, raising signal-to-noise.
 
 ### 2. Feed the PR title + body
 Pass intent alongside the diff. A lot of reviews are better with "what the
