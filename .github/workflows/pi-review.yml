@@ -9,7 +9,12 @@ on:
       provider:
         required: false
         default: anthropic
-        description: pi --provider (anthropic, openai, deepseek, ...)
+        type: choice
+        description: pi --provider
+        options:
+          - anthropic
+          - openai
+          - deepseek
       model:
         required: false
         default: sonnet
