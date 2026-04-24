@@ -68,7 +68,21 @@ jobs:
             --no-skills \
             | tee review.md
 
+      - name: Assemble comment
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "## pi code review — \`${{ inputs.provider }}\` / \`${{ inputs.model }}\`"
+            echo
+            echo "[View CI run]($RUN_URL)"
+            echo
+            echo '---'
+            echo
+            cat review.md
+          } > comment.md
+
       - name: Post PR comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr comment ${{ inputs.pr_number }} --body-file review.md
+        run: gh pr comment ${{ inputs.pr_number }} --body-file comment.md
