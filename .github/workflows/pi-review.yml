@@ -1,0 +1,74 @@
+name: AI Code Review (pi)
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        required: true
+        description: PR number to review
+      provider:
+        required: false
+        default: anthropic
+        description: pi --provider (anthropic, openai, deepseek, ...)
+      model:
+        required: false
+        default: sonnet
+        description: pi --model (sonnet, opus, gpt-4.1, deepseek-chat, ...)
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get PR diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr diff ${{ inputs.pr_number }} > diff.txt
+
+      - name: Build prompt file
+        run: |
+          {
+            cat .github/pi-review/system-prompt.md
+            echo
+            cat .github/pi-review/instructions.md
+            echo
+            echo 'Unified diff:'
+            echo '```diff'
+            cat diff.txt
+            echo '```'
+          } > .pi-review-prompt.tmp.txt
+
+      - name: Run pi review
+        env:
+          NO_COLOR: '1'
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
+          DEEPSEEK_API_KEY:  ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          npx -y @mariozechner/pi-coding-agent \
+            -p @./.pi-review-prompt.tmp.txt \
+            --provider "${{ inputs.provider }}" \
+            --model    "${{ inputs.model }}" \
+            --tools    read,grep,find,ls \
+            --no-session \
+            --no-extensions \
+            --no-skills \
+            | tee review.md
+
+      - name: Post PR comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr comment ${{ inputs.pr_number }} --body-file review.md
