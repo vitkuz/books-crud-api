@@ -6,20 +6,22 @@ on:
       pr_number:
         required: true
         description: PR number to review
-      provider:
+      target:
         required: false
-        default: anthropic
+        default: anthropic/sonnet
         type: choice
-        description: pi --provider
+        description: provider/model
         options:
-          - anthropic
-          - openai
-          - deepseek
-          - google
-      model:
-        required: false
-        default: sonnet
-        description: pi --model (sonnet, opus, gpt-4.1, deepseek-chat, ...)
+          - anthropic/sonnet
+          - anthropic/opus
+          - anthropic/haiku
+          - openai/gpt-5.4
+          - openai/gpt-5.4-mini
+          - google/gemini-2.5-pro
+          - google/gemini-2.5-flash
+          - google/gemini-3.1-pro-preview
+          - deepseek/deepseek-chat
+          - deepseek/deepseek-reasoner
 
 jobs:
   review:
@@ -78,10 +80,13 @@ jobs:
           DEEPSEEK_API_KEY:  ${{ secrets.DEEPSEEK_API_KEY }}
           GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
         run: |
+          target='${{ inputs.target }}'
+          provider="${target%%/*}"
+          model="${target#*/}"
           npx -y @mariozechner/pi-coding-agent \
             -p @./.pi-review-prompt.tmp.txt \
-            --provider "${{ inputs.provider }}" \
-            --model    "${{ inputs.model }}" \
+            --provider "$provider" \
+            --model    "$model" \
             --tools    read,grep,find,ls \
             --no-session \
             --no-extensions \
@@ -93,7 +98,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           {
-            echo "## pi code review — \`${{ inputs.provider }}\` / \`${{ inputs.model }}\`"
+            echo "## pi code review — \`${{ inputs.target }}\`"
             echo
             echo "[View CI run]($RUN_URL)"
             echo
