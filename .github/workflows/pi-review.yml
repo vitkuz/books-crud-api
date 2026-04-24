@@ -85,6 +85,7 @@ jobs:
             --provider "$provider" \
             --model    "$model" \
             --tools    read,grep,find,ls \
+            --thinking high \
             --no-session \
             --no-extensions \
             --no-skills \
