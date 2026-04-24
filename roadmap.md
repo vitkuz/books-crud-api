@@ -56,6 +56,18 @@ Then in "Build prompt file", cat `pr-meta.md` before the diff.
 **Why**: distinguishes bugs from features. A "regression" in behavior may be
 intentional — the PR body usually says so.
 
+### 2.5. Require an `## Intent` block at the top of every review *(shipped — commit `cdd9f20`)*
+Prepend a mandatory plain-language `## Intent` section before `## Summary`.
+1–3 sentences: what the reviewer thinks the PR is trying to accomplish
+(from title + body + diff). Then one short sentence on whether the
+implementation matches that intent; when it doesn't, explain the mismatch
+in plain English. Concrete rule violations still go under `## Issues`.
+
+**Why**: (1) helps a human reviewer grasp a PR in seconds without reading
+the diff; (2) forces the agent to articulate its understanding before
+flagging anything, which tends to prune findings rooted in
+misunderstanding.
+
 ### 3. Unlock exploration in `instructions.md`
 Agent already has `read,grep,find,ls` tools. Tell it to use them.
 
