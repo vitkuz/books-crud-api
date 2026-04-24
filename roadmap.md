@@ -78,8 +78,10 @@ Add one line to `.github/pi-review/instructions.md`:
 
 **Why**: grounds claims. Prevents false positives based on diff-only context.
 
-### 4. Severity tags on every bullet
-Require `[CRIT]` / `[WARN]` / `[NIT]` prefix on each bullet under `## Issues`.
+### 4. Severity tags on every bullet *(shipped — commit `451c97c`)*
+Require 🔴 / 🟡 / 🟢 emoji prefix on each bullet under `## Issues`:
+🔴 critical (ship-blocker), 🟡 warning (convention violation), 🟢 nit
+(minor / subjective).
 
 **Why**: eyeball-able triage. You can skim the comment and jump to the red
 lines.
