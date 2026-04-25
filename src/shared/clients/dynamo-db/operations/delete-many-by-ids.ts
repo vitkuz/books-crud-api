@@ -1,24 +1,18 @@
 import { BatchWriteCommand, BatchWriteCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DynamoDbClientSettings, DynamoKey } from '../types';
+import { DynamoDbClient, DynamoDbClientSettings, DynamoKey } from '../types';
+import { chunk, WriteDelete } from '../utils';
 
 const BATCH_WRITE_LIMIT = 25;
 
-const chunk = <T>(arr: T[], size: number): T[][] => {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-};
-
-type DeleteRequest = { DeleteRequest: { Key: DynamoKey } };
-
-export const deleteManyByIdsFactory =
-  (settings: DynamoDbClientSettings) =>
-  async (keys: DynamoKey[]): Promise<void> => {
+export const deleteManyByIdsFactory = (
+  settings: DynamoDbClientSettings,
+): DynamoDbClient['deleteManyByIds'] => {
+  return async (keys) => {
     settings.logger?.('dynamo.deleteManyByIds start', { count: keys.length });
     if (keys.length === 0) return;
 
     for (const slice of chunk(keys, BATCH_WRITE_LIMIT)) {
-      let pending: DeleteRequest[] = slice.map((key: DynamoKey): DeleteRequest => ({
+      let pending: WriteDelete[] = slice.map((key: DynamoKey): WriteDelete => ({
         DeleteRequest: { Key: key },
       }));
       let attempt = 0;
@@ -26,9 +20,9 @@ export const deleteManyByIdsFactory =
         const result: BatchWriteCommandOutput = await settings.client.send(
           new BatchWriteCommand({ RequestItems: { [settings.tableName]: pending } }),
         );
-        const unprocessed: DeleteRequest[] | undefined = result.UnprocessedItems?.[
+        const unprocessed: WriteDelete[] | undefined = result.UnprocessedItems?.[
           settings.tableName
-        ] as DeleteRequest[] | undefined;
+        ] as WriteDelete[] | undefined;
         if (!unprocessed || unprocessed.length === 0) {
           pending = [];
           break;
@@ -48,3 +42,4 @@ export const deleteManyByIdsFactory =
 
     settings.logger?.('dynamo.deleteManyByIds success', { count: keys.length });
   };
+};

@@ -1,39 +1,11 @@
 import { UpdateCommand, UpdateCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DynamoDbClientSettings, DynamoItem, DynamoKey } from '../types';
+import { DynamoDbClient, DynamoDbClientSettings, DynamoItem } from '../types';
+import { buildSetExpression, UpdateExpressionParts } from '../utils';
 
-const KEY_FIELDS: ReadonlySet<string> = new Set(['pk', 'sk']);
-
-type UpdateExpressionParts = {
-  expression: string;
-  names: Record<string, string>;
-  values: Record<string, unknown>;
-};
-
-const buildSetExpression = (patch: Record<string, unknown>): UpdateExpressionParts | undefined => {
-  const names: Record<string, string> = {};
-  const values: Record<string, unknown> = {};
-  const setClauses: string[] = [];
-  let i = 0;
-  for (const [field, value] of Object.entries(patch)) {
-    if (KEY_FIELDS.has(field)) continue;
-    const nameToken: string = `#k${i}`;
-    const valueToken: string = `:v${i}`;
-    names[nameToken] = field;
-    values[valueToken] = value;
-    setClauses.push(`${nameToken} = ${valueToken}`);
-    i += 1;
-  }
-  if (setClauses.length === 0) return undefined;
-  return {
-    expression: `SET ${setClauses.join(', ')}`,
-    names,
-    values,
-  };
-};
-
-export const patchOneByIdFactory =
-  (settings: DynamoDbClientSettings) =>
-  async (key: DynamoKey, patch: Record<string, unknown>): Promise<DynamoItem> => {
+export const patchOneByIdFactory = (
+  settings: DynamoDbClientSettings,
+): DynamoDbClient['patchOneById'] => {
+  return async (key, patch) => {
     settings.logger?.('dynamo.patchOneById start', { key, fields: Object.keys(patch) });
     const parts: UpdateExpressionParts | undefined = buildSetExpression(patch);
     if (!parts) {
@@ -52,3 +24,4 @@ export const patchOneByIdFactory =
     settings.logger?.('dynamo.patchOneById success', { key });
     return result.Attributes as DynamoItem;
   };
+};

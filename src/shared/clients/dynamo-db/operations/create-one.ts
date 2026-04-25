@@ -1,9 +1,10 @@
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { DynamoDbClientSettings, DynamoItem } from '../types';
+import { DynamoDbClient, DynamoDbClientSettings } from '../types';
 
-export const createOneFactory =
-  (settings: DynamoDbClientSettings) =>
-  async (item: DynamoItem): Promise<DynamoItem> => {
+export const createOneFactory = (
+  settings: DynamoDbClientSettings,
+): DynamoDbClient['createOne'] => {
+  return async (item) => {
     settings.logger?.('dynamo.createOne start', { pk: item.pk, sk: item.sk });
     await settings.client.send(
       new PutCommand({
@@ -14,3 +15,4 @@ export const createOneFactory =
     settings.logger?.('dynamo.createOne success', { pk: item.pk, sk: item.sk });
     return item;
   };
+};

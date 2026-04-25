@@ -111,7 +111,7 @@ const main = async (): Promise<void> => {
         });
         expect(items.length === 3, 'listAll GSI2 returns 3 items');
         const updatedAts: string[] = items.map((i: DynamoItem): string => String(i.updatedAt));
-        const sorted: boolean = updatedAts.every(
+        const sorted = updatedAts.every(
           (v: string, idx: number): boolean => idx === 0 || updatedAts[idx - 1] >= v,
         );
         expect(sorted, `items not in descending updatedAt order: ${updatedAts.join(', ')}`);
@@ -178,8 +178,10 @@ const main = async (): Promise<void> => {
     // Best-effort cleanup so we don't leave items behind on partial failure
     try {
       await db.deleteManyByIds(allKeys);
-    } catch {
-      // ignore — surface the original failure
+    } catch (cleanupErr) {
+      const cleanupMsg: string =
+        cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
+      console.error(`cleanup failed (original test failure preserved): ${cleanupMsg}`);
     }
     process.exit(1);
   }

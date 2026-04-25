@@ -1,9 +1,10 @@
 import { GetCommand, GetCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DynamoDbClientSettings, DynamoItem, DynamoKey } from '../types';
+import { DynamoDbClient, DynamoDbClientSettings, DynamoItem } from '../types';
 
-export const getOneByIdFactory =
-  (settings: DynamoDbClientSettings) =>
-  async (key: DynamoKey): Promise<DynamoItem | undefined> => {
+export const getOneByIdFactory = (
+  settings: DynamoDbClientSettings,
+): DynamoDbClient['getOneById'] => {
+  return async (key) => {
     settings.logger?.('dynamo.getOneById start', { key });
     const result: GetCommandOutput = await settings.client.send(
       new GetCommand({
@@ -14,3 +15,4 @@ export const getOneByIdFactory =
     settings.logger?.('dynamo.getOneById success', { found: result.Item !== undefined });
     return result.Item as DynamoItem | undefined;
   };
+};

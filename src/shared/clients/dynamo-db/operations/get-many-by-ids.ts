@@ -1,17 +1,13 @@
 import { BatchGetCommand, BatchGetCommandOutput } from '@aws-sdk/lib-dynamodb';
-import { DynamoDbClientSettings, DynamoItem, DynamoKey } from '../types';
+import { DynamoDbClient, DynamoDbClientSettings, DynamoItem, DynamoKey } from '../types';
+import { chunk } from '../utils';
 
 const BATCH_GET_LIMIT = 100;
 
-const chunk = <T>(arr: T[], size: number): T[][] => {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-};
-
-export const getManyByIdsFactory =
-  (settings: DynamoDbClientSettings) =>
-  async (keys: DynamoKey[]): Promise<DynamoItem[]> => {
+export const getManyByIdsFactory = (
+  settings: DynamoDbClientSettings,
+): DynamoDbClient['getManyByIds'] => {
+  return async (keys) => {
     settings.logger?.('dynamo.getManyByIds start', { count: keys.length });
     if (keys.length === 0) return [];
 
@@ -25,9 +21,8 @@ export const getManyByIdsFactory =
         );
         const found: DynamoItem[] = (result.Responses?.[settings.tableName] ?? []) as DynamoItem[];
         items.push(...found);
-        const unprocessed: DynamoKey[] | undefined = (
-          result.UnprocessedKeys?.[settings.tableName]?.Keys as DynamoKey[] | undefined
-        );
+        const unprocessed: DynamoKey[] | undefined = result.UnprocessedKeys?.[settings.tableName]
+          ?.Keys as DynamoKey[] | undefined;
         if (!unprocessed || unprocessed.length === 0) break;
         request = { Keys: unprocessed };
         attempt += 1;
@@ -45,3 +40,4 @@ export const getManyByIdsFactory =
     settings.logger?.('dynamo.getManyByIds success', { found: items.length });
     return items;
   };
+};

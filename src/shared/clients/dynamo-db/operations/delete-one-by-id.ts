@@ -1,9 +1,10 @@
 import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
-import { DynamoDbClientSettings, DynamoKey } from '../types';
+import { DynamoDbClient, DynamoDbClientSettings } from '../types';
 
-export const deleteOneByIdFactory =
-  (settings: DynamoDbClientSettings) =>
-  async (key: DynamoKey): Promise<void> => {
+export const deleteOneByIdFactory = (
+  settings: DynamoDbClientSettings,
+): DynamoDbClient['deleteOneById'] => {
+  return async (key) => {
     settings.logger?.('dynamo.deleteOneById start', { key });
     await settings.client.send(
       new DeleteCommand({
@@ -13,3 +14,4 @@ export const deleteOneByIdFactory =
     );
     settings.logger?.('dynamo.deleteOneById success', { key });
   };
+};
