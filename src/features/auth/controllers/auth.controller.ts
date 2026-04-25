@@ -23,11 +23,11 @@ const toAuthBody = (result: AuthSuccess): AuthResponseBody => ({
   token: result.token,
 });
 
-export const postRegister = (req: Request, res: Response): Response => {
+export const postRegister = async (req: Request, res: Response): Promise<Response> => {
   const parsed: ReturnType<typeof registerSchema.safeParse> = registerSchema.safeParse(req.body);
   if (!parsed.success) return badRequest(res, parsed.error);
   const payload: RegisterPayload = parsed.data;
-  const result: RegisterResult = authService.register(payload);
+  const result: RegisterResult = await authService.register(payload);
   if (!result.ok && result.error === 'EMAIL_TAKEN') {
     return res.status(409).json({ error: 'Conflict', message: 'email already registered' });
   }
@@ -35,11 +35,11 @@ export const postRegister = (req: Request, res: Response): Response => {
   return res.status(201).json(toAuthBody(result));
 };
 
-export const postLogin = (req: Request, res: Response): Response => {
+export const postLogin = async (req: Request, res: Response): Promise<Response> => {
   const parsed: ReturnType<typeof loginSchema.safeParse> = loginSchema.safeParse(req.body);
   if (!parsed.success) return badRequest(res, parsed.error);
   const payload: LoginPayload = parsed.data;
-  const result: LoginResult = authService.login(payload);
+  const result: LoginResult = await authService.login(payload);
   if (!result.ok && result.error === 'INVALID_CREDENTIALS') {
     return res.status(401).json({ error: 'Unauthorized', message: 'invalid email or password' });
   }
@@ -47,8 +47,8 @@ export const postLogin = (req: Request, res: Response): Response => {
   return res.status(200).json(toAuthBody(result));
 };
 
-export const postLogout = (req: Request, res: Response): Response => {
-  authService.logout(req.auth!.token);
+export const postLogout = async (req: Request, res: Response): Promise<Response> => {
+  await authService.logout(req.auth!.token);
   return res.status(204).send();
 };
 

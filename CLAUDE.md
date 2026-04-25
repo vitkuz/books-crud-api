@@ -1,21 +1,72 @@
 # Project conventions (enforced in code review)
 
-A minimal CRUD API in TypeScript + Express with in-memory storage (`Map`).
-This file tells the Claude code reviewer what standards to enforce. Inline-comment
-concrete violations of these rules; don't waste comments on style preferences that
-aren't listed here.
+A minimal CRUD API in TypeScript + Express. Persistence is a single DynamoDB
+table reached through a shared client (`src/shared/clients/dynamo-db/`) — but
+a migration off in-memory `Map`s is in flight. See "Migration in flight"
+below for which entities have moved.
 
-## Architecture
+This file tells the Claude code reviewer what standards to enforce.
+Inline-comment concrete violations of these rules; don't waste comments on
+style preferences that aren't listed here.
 
-- Feature-first layout under `src/features/<feature>/`.
-- Three layers per feature: `routes/` → `controllers/` → `services/`.
-- `src/shared/` for cross-cutting code (`config/env.ts`, `utils/logger.ts`).
-- A service **may** import another feature's `*.store.ts` for read-only data access.
-- A service **must not** import another feature's `controllers/` or `routes/`.
+## Architecture (target)
+
+```
+HTTP layer (per feature)
+  routes/   ──►  controllers/   ──►   shared/usecases/    ──►   shared/services/<entity>.service.ts
+                                       (compose 2+ services)     (entity CRUD wrappers)
+                                                                   │
+                                                                   ▼
+                                                    shared/clients/dynamo-db/  (instance + ops)
+```
+
+- Feature-first folders for the **HTTP layer only**: `src/features/<feature>/`
+  contains `routes/`, `controllers/`, `<feature>.schema.ts`, and any
+  HTTP-only utility (e.g. `auth.utils.extractBearerToken`).
+- **Data services** live in `src/shared/services/<entity>.service.ts`. They
+  wrap the DynamoDB client with entity-specific CRUD (`create`, `findById`,
+  `findAll`, etc.). Each service is exported as a module-level singleton
+  built once at module load against the shared `DynamoDbClient` from
+  `src/shared/clients/dynamo-db/instance.ts`.
+- **Use cases** live in `src/shared/usecases/<action>.usecase.ts`. They
+  compose **two or more** services. A controller calling a single service
+  directly is fine — only reach for a usecase when there's real composition.
+- **Entity types** (`User`, `Book`, `Author`, ...) live in `src/shared/types/`
+  because services own the persisted shape.
+- **Schemas** (`*.schema.ts`) are HTTP-payload validation and stay per
+  feature.
 - Routes only bind paths to controllers; no logic.
-- Controllers parse input (Zod), call services, and shape the HTTP response. No
-  business rules.
-- Services hold business logic and touch stores.
+- Controllers parse input (Zod), call usecases or services, shape the HTTP
+  response. No business rules.
+
+### DynamoDB item shape
+
+- Single table; `pk` + `sk` strings. Each entity picks a `pk` prefix
+  (`USER#<id>`, `BOOK#<id>`, `SESSION#<token>`, ...) and a stable `sk`
+  discriminator (`PROFILE`, `META`, `DATA`, ...).
+- The store layer copies `metadata.createdAt` / `metadata.updatedAt` to
+  top-level `createdAt` / `updatedAt` so GSI2 (sort by updatedAt) and GSI3
+  (sort by createdAt) work. API response shapes keep the nested `metadata`
+  block.
+
+## Migration in flight
+
+The architecture above is the target. Migration is happening one entity per
+PR. Until each entity migrates, the legacy pattern (per-feature
+`*.store.ts` Map + per-feature `services/` folder) coexists with the new
+shared services.
+
+| entity | status | notes |
+|---|---|---|
+| sessions | **migrated** | `shared/services/sessions.service.ts` |
+| users | legacy | `features/users/users.store.ts` (Map) |
+| books | legacy | `features/books/books.store.ts` (Map) |
+| authors | legacy | `features/authors/authors.store.ts` (Map) |
+| categories | legacy | `features/categories/categories.store.ts` (Map) |
+
+For legacy entities, the old rules still apply (per-feature `services/`,
+`*.store.ts` Map). Reviewers: do not flag the coexistence of both patterns
+during the migration window.
 
 ## Coding style
 

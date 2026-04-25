@@ -2,11 +2,6 @@ import { z } from 'zod';
 import { UserResponse } from '../users/users.types';
 import { loginSchema, registerSchema } from './auth.schema';
 
-export type Session = {
-  userId: string;
-  createdAt: string;
-};
-
 export type RegisterPayload = z.infer<typeof registerSchema>;
 export type LoginPayload = z.infer<typeof loginSchema>;
 

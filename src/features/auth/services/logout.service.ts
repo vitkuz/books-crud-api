@@ -1,13 +1,9 @@
+import { sessionsService } from '../../../shared/services/sessions.service';
 import logger from '../../../shared/utils/logger';
-import { removeSession } from '../auth.store';
 
-export const logout = (token: string): boolean => {
+export const logout = async (token: string): Promise<boolean> => {
   logger.debug('logout.service start');
-  const removed: boolean = removeSession(token);
-  if (!removed) {
-    logger.debug('logout.service unknown-token');
-    return false;
-  }
+  await sessionsService.deleteByToken(token);
   logger.debug('logout.service success');
   return true;
 };
