@@ -19,6 +19,9 @@ type Step = {
   run: (ctx: Context) => Promise<void>;
 };
 
+type AuthHeaders = { authorization: string };
+type AuthRequestConfig = { headers: AuthHeaders };
+
 const expectStatus = (res: AxiosResponse, expected: number, label: string): void => {
   if (res.status !== expected) {
     throw new Error(`${label}: expected status ${expected}, got ${res.status}`);
@@ -86,13 +89,17 @@ const testLoginAndMe = async (ctx: Context): Promise<void> => {
 };
 
 const testAuthorsCrud = async (ctx: Context): Promise<void> => {
+  const auth: AuthRequestConfig = { headers: authHeader(ctx.state.userToken) };
+
   const list1: AxiosResponse = await ctx.http.client.get('/authors');
   expectStatus(list1, 200, 'GET /authors');
   if (!Array.isArray(list1.data)) throw new Error('GET /authors: body is not an array');
 
-  const create: AxiosResponse = await ctx.http.client.post('/authors', {
-    name: 'Test Author',
-  });
+  const create: AxiosResponse = await ctx.http.client.post(
+    '/authors',
+    { name: 'Test Author' },
+    auth,
+  );
   expectStatus(create, 201, 'POST /authors');
   expectKey(create.data, 'id', 'POST /authors');
   ctx.state.authorId = create.data.id;
@@ -100,9 +107,11 @@ const testAuthorsCrud = async (ctx: Context): Promise<void> => {
   const get: AxiosResponse = await ctx.http.client.get(`/authors/${ctx.state.authorId}`);
   expectStatus(get, 200, 'GET /authors/:id');
 
-  const update: AxiosResponse = await ctx.http.client.put(`/authors/${ctx.state.authorId}`, {
-    name: 'Test Author (renamed)',
-  });
+  const update: AxiosResponse = await ctx.http.client.put(
+    `/authors/${ctx.state.authorId}`,
+    { name: 'Test Author (renamed)' },
+    auth,
+  );
   expectStatus(update, 200, 'PUT /authors/:id');
 
   const missing: AxiosResponse = await ctx.http.client.get(
@@ -113,12 +122,13 @@ const testAuthorsCrud = async (ctx: Context): Promise<void> => {
 
 const testBooksCrud = async (ctx: Context): Promise<void> => {
   if (!ctx.state.authorId) throw new Error('no author in state — run authors first');
+  const auth: AuthRequestConfig = { headers: authHeader(ctx.state.userToken) };
 
-  const create: AxiosResponse = await ctx.http.client.post('/books', {
-    title: 'The Test Manuscript',
-    authorId: ctx.state.authorId,
-    year: 2026,
-  });
+  const create: AxiosResponse = await ctx.http.client.post(
+    '/books',
+    { title: 'The Test Manuscript', authorId: ctx.state.authorId, year: 2026 },
+    auth,
+  );
   expectStatus(create, 201, 'POST /books');
   expectKey(create.data, 'id', 'POST /books');
   ctx.state.bookId = create.data.id;
@@ -129,12 +139,14 @@ const testBooksCrud = async (ctx: Context): Promise<void> => {
   const count: AxiosResponse = await ctx.http.client.get('/books/count');
   expectStatus(count, 200, 'GET /books/count');
 
-  const update: AxiosResponse = await ctx.http.client.put(`/books/${ctx.state.bookId}`, {
-    title: 'The Test Manuscript (revised)',
-  });
+  const update: AxiosResponse = await ctx.http.client.put(
+    `/books/${ctx.state.bookId}`,
+    { title: 'The Test Manuscript (revised)' },
+    auth,
+  );
   expectStatus(update, 200, 'PUT /books/:id');
 
-  const del: AxiosResponse = await ctx.http.client.delete(`/books/${ctx.state.bookId}`);
+  const del: AxiosResponse = await ctx.http.client.delete(`/books/${ctx.state.bookId}`, auth);
   expectStatus(del, 204, 'DELETE /books/:id');
 
   const after: AxiosResponse = await ctx.http.client.get(`/books/${ctx.state.bookId}`);
@@ -143,6 +155,7 @@ const testBooksCrud = async (ctx: Context): Promise<void> => {
 
 const testUsersCrud = async (ctx: Context): Promise<void> => {
   if (!ctx.state.userId) throw new Error('no user in state — run register first');
+  const auth: AuthRequestConfig = { headers: authHeader(ctx.state.userToken) };
 
   const get: AxiosResponse = await ctx.http.client.get(`/users/${ctx.state.userId}`);
   expectStatus(get, 200, 'GET /users/:id');
@@ -154,12 +167,18 @@ const testUsersCrud = async (ctx: Context): Promise<void> => {
   expectStatus(list, 200, 'GET /users');
   if (!Array.isArray(list.data)) throw new Error('GET /users: body is not an array');
 
-  const update: AxiosResponse = await ctx.http.client.put(`/users/${ctx.state.userId}`, {
-    name: 'Renamed Integration User',
-  });
+  const update: AxiosResponse = await ctx.http.client.put(
+    `/users/${ctx.state.userId}`,
+    { name: 'Renamed Integration User' },
+    auth,
+  );
   expectStatus(update, 200, 'PUT /users/:id');
 
-  const empty: AxiosResponse = await ctx.http.client.put(`/users/${ctx.state.userId}`, {});
+  const empty: AxiosResponse = await ctx.http.client.put(
+    `/users/${ctx.state.userId}`,
+    {},
+    auth,
+  );
   expectStatus(empty, 400, 'PUT /users/:id (empty body)');
 };
 
