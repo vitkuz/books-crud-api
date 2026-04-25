@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
-import { InitResult } from '../auth.types';
-import * as authService from '../services';
+import { initUseCase, InitResult } from '../../../shared/usecases';
 
 export const postInit = async (_req: Request, res: Response): Promise<Response> => {
-  const result: InitResult = await authService.init();
+  const result: InitResult = await initUseCase();
   if (!result.ok && result.error === 'ALREADY_INITIALIZED') {
     return res.status(409).json({
       error: 'Conflict',

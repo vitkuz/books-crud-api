@@ -59,7 +59,7 @@ shared services.
 | entity | status | notes |
 |---|---|---|
 | sessions | **migrated** | `shared/services/sessions.service.ts` |
-| users | legacy | `features/users/users.store.ts` (Map) |
+| users | **migrated** | `shared/services/users.service.ts` + auth flows in `shared/usecases/{register,login,init}.usecase.ts` |
 | books | legacy | `features/books/books.store.ts` (Map) |
 | authors | legacy | `features/authors/authors.store.ts` (Map) |
 | categories | legacy | `features/categories/categories.store.ts` (Map) |

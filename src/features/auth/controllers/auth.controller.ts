@@ -1,16 +1,18 @@
 import { Request, Response } from 'express';
 import { ZodError } from 'zod';
-import { loginSchema, registerSchema } from '../auth.schema';
+import { sessionsService } from '../../../shared/services/sessions.service';
+import { usersService } from '../../../shared/services/users.service';
+import { User, UserResponse } from '../../../shared/types/user.types';
 import {
-  AuthResponseBody,
   AuthSuccess,
-  LoginPayload,
+  loginUseCase,
   LoginResult,
-  MeResult,
-  RegisterPayload,
+  registerUseCase,
   RegisterResult,
-} from '../auth.types';
-import * as authService from '../services';
+} from '../../../shared/usecases';
+import { toUserResponse } from '../../../shared/utils/user-mapper';
+import { loginSchema, registerSchema } from '../auth.schema';
+import { AuthResponseBody, LoginPayload, RegisterPayload } from '../auth.types';
 
 const badRequest = (res: Response, err: ZodError): Response =>
   res.status(400).json({ error: 'ValidationError', issues: err.issues });
@@ -27,7 +29,7 @@ export const postRegister = async (req: Request, res: Response): Promise<Respons
   const parsed: ReturnType<typeof registerSchema.safeParse> = registerSchema.safeParse(req.body);
   if (!parsed.success) return badRequest(res, parsed.error);
   const payload: RegisterPayload = parsed.data;
-  const result: RegisterResult = await authService.register(payload);
+  const result: RegisterResult = await registerUseCase(payload);
   if (!result.ok && result.error === 'EMAIL_TAKEN') {
     return res.status(409).json({ error: 'Conflict', message: 'email already registered' });
   }
@@ -39,7 +41,7 @@ export const postLogin = async (req: Request, res: Response): Promise<Response> 
   const parsed: ReturnType<typeof loginSchema.safeParse> = loginSchema.safeParse(req.body);
   if (!parsed.success) return badRequest(res, parsed.error);
   const payload: LoginPayload = parsed.data;
-  const result: LoginResult = await authService.login(payload);
+  const result: LoginResult = await loginUseCase(payload);
   if (!result.ok && result.error === 'INVALID_CREDENTIALS') {
     return res.status(401).json({ error: 'Unauthorized', message: 'invalid email or password' });
   }
@@ -48,12 +50,13 @@ export const postLogin = async (req: Request, res: Response): Promise<Response> 
 };
 
 export const postLogout = async (req: Request, res: Response): Promise<Response> => {
-  await authService.logout(req.auth!.token);
+  await sessionsService.deleteByToken(req.auth!.token);
   return res.status(204).send();
 };
 
-export const getMe = (req: Request, res: Response): Response => {
-  const result: MeResult = authService.me(req.auth!.userId);
-  if (!result.ok) return unauthorized(res);
-  return res.status(200).json(result.user);
+export const getMe = async (req: Request, res: Response): Promise<Response> => {
+  const user: User | undefined = await usersService.findById(req.auth!.userId);
+  if (!user) return unauthorized(res);
+  const body: UserResponse = toUserResponse(user);
+  return res.status(200).json(body);
 };

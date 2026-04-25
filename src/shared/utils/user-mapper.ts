@@ -1,4 +1,4 @@
-import { User, UserResponse } from '../../features/users/users.types';
+import { User, UserResponse } from '../types/user.types';
 
 export const toUserResponse = (user: User): UserResponse => ({
   id: user.id,
