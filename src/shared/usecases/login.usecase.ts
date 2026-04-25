@@ -26,7 +26,7 @@ export const loginUseCase = async (input: LoginInput): Promise<LoginResult> => {
   }
 
   try {
-    const token: string = await sessionsService.create(user.id);
+    const token = await sessionsService.create(user.id);
     logger.debug('login.usecase success', { id: user.id });
     return { ok: true, user: toUserResponse(user), token };
   } catch (err) {

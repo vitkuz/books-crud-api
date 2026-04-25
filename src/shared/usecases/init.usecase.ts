@@ -11,7 +11,7 @@ export type InitResult =
   | { ok: false; error: 'INTERNAL' };
 
 const generateEmail = (): string => {
-  const suffix: string = randomBytes(3).toString('hex');
+  const suffix = randomBytes(3).toString('hex');
   return `admin-${suffix}@local`;
 };
 
@@ -20,14 +20,14 @@ const generatePassword = (): string => randomBytes(12).toString('base64url');
 export const initUseCase = async (): Promise<InitResult> => {
   logger.debug('init.usecase start');
 
-  const count: number = await usersService.count();
+  const count = await usersService.count();
   if (count > 0) {
     logger.debug('init.usecase already-initialized', { count });
     return { ok: false, error: 'ALREADY_INITIALIZED' };
   }
 
-  const email: string = generateEmail();
-  const password: string = generatePassword();
+  const email = generateEmail();
+  const password = generatePassword();
 
   const created: CreateUserResult = await usersService.create({
     email,
@@ -40,7 +40,7 @@ export const initUseCase = async (): Promise<InitResult> => {
   }
 
   try {
-    const token: string = await sessionsService.create(created.user.id);
+    const token = await sessionsService.create(created.user.id);
     logger.debug('init.usecase success', { id: created.user.id });
     return {
       ok: true,
@@ -53,9 +53,11 @@ export const initUseCase = async (): Promise<InitResult> => {
       id: created.user.id,
       error: err instanceof Error ? err.message : String(err),
     });
-    await usersService.delete(created.user.id).catch((): void => {
-      // rollback failed; bootstrap admin will need to be cleaned up
-      // out-of-band before /init can succeed again.
+    await usersService.delete(created.user.id).catch((rollbackErr: unknown): void => {
+      logger.debug('init.usecase rollback-failed', {
+        id: created.user.id,
+        error: rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr),
+      });
     });
     return { ok: false, error: 'INTERNAL' };
   }

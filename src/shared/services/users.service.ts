@@ -112,7 +112,7 @@ export const usersService: UsersService = {
     // OK at demo scale; a dedicated email index would replace this when
     // the user table grows.
     const items: DynamoItem[] = await dynamoDb.listAll(SK_VALUE);
-    const needle: string = email.toLowerCase();
+    const needle = email.toLowerCase();
     const match: DynamoItem | undefined = items.find(
       (i: DynamoItem): boolean =>
         typeof i.email === 'string' && i.email.toLowerCase() === needle,

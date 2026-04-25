@@ -27,7 +27,7 @@ export const registerUseCase = async (input: RegisterInput): Promise<RegisterRes
   const user: User = created.user;
 
   try {
-    const token: string = await sessionsService.create(user.id);
+    const token = await sessionsService.create(user.id);
     logger.debug('register.usecase success', { id: user.id });
     return { ok: true, user: toUserResponse(user), token };
   } catch (err) {
@@ -35,9 +35,11 @@ export const registerUseCase = async (input: RegisterInput): Promise<RegisterRes
       id: user.id,
       error: err instanceof Error ? err.message : String(err),
     });
-    await usersService.delete(user.id).catch((): void => {
-      // rollback failed; user record will need to be cleaned up out-of-band.
-      // Original error is what we surface upstream.
+    await usersService.delete(user.id).catch((rollbackErr: unknown): void => {
+      logger.debug('register.usecase rollback-failed', {
+        id: user.id,
+        error: rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr),
+      });
     });
     return { ok: false, error: 'INTERNAL' };
   }

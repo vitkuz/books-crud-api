@@ -62,7 +62,7 @@ export const putUser = async (req: Request, res: Response): Promise<Response> =>
 export const deleteUserById = async (req: Request, res: Response): Promise<Response> => {
   const parsed: ReturnType<typeof userIdParamSchema.safeParse> = userIdParamSchema.safeParse(req.params);
   if (!parsed.success) return badRequest(res, parsed.error);
-  const removed: boolean = await usersService.delete(parsed.data.id);
+  const removed = await usersService.delete(parsed.data.id);
   if (!removed) return res.status(404).json({ error: 'NotFound' });
   return res.status(204).send();
 };
