@@ -18,12 +18,32 @@ type RequestMeta = {
 
 type ConfigWithMeta = InternalAxiosRequestConfig & { metadata?: RequestMeta };
 
+const SECRET_KEYS: ReadonlySet<string> = new Set([
+  'password',
+  'passwordHash',
+  'token',
+  'authorization',
+]);
+
+const redact = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(redact);
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) =>
+        SECRET_KEYS.has(k) ? [k, '<redacted>'] : [k, redact(v)],
+      ),
+    );
+  }
+  return value;
+};
+
 const defaultLogger = (msg: string, ctx?: unknown): void => {
   if (ctx === undefined || ctx === null || ctx === '') {
     console.log(msg);
     return;
   }
-  console.log(msg, typeof ctx === 'string' ? ctx : JSON.stringify(ctx));
+  const safe: unknown = redact(ctx);
+  console.log(msg, typeof safe === 'string' ? safe : JSON.stringify(safe));
 };
 
 export const createHttpAdapter = ({
@@ -37,18 +57,18 @@ export const createHttpAdapter = ({
   });
 
   client.interceptors.request.use((config: ConfigWithMeta): ConfigWithMeta => {
-    const requestId: string = uuidv4().slice(0, 8);
+    const requestId = uuidv4().slice(0, 8);
     config.metadata = { requestId, startedAt: Date.now() };
     config.headers.set('x-request-id', requestId);
-    const method: string = (config.method ?? 'get').toUpperCase();
+    const method = (config.method ?? 'get').toUpperCase();
     logger(`-> [${requestId}] ${method} ${config.url ?? ''}`, config.data);
     return config;
   });
 
   client.interceptors.response.use((response: AxiosResponse): AxiosResponse => {
     const meta: RequestMeta | undefined = (response.config as ConfigWithMeta).metadata;
-    const requestId: string = meta?.requestId ?? '-';
-    const elapsed: number = meta ? Date.now() - meta.startedAt : 0;
+    const requestId = meta?.requestId ?? '-';
+    const elapsed = meta ? Date.now() - meta.startedAt : 0;
     logger(`<- [${requestId}] ${response.status} (${elapsed}ms)`, response.data);
     return response;
   });

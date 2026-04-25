@@ -56,7 +56,7 @@ const testInit = async (ctx: Context): Promise<void> => {
 };
 
 const testRegister = async (ctx: Context): Promise<void> => {
-  const email: string = `test-${Date.now()}@example.com`;
+  const email = `test-${Date.now()}@example.com`;
   const res: AxiosResponse = await ctx.http.client.post('/auth/register', {
     email,
     password: 'correct-horse-battery-staple',
@@ -205,8 +205,8 @@ export const runScenarios = async (http: HttpAdapter): Promise<void> => {
     },
   };
 
-  let passed: number = 0;
-  let failed: number = 0;
+  let passed = 0;
+  let failed = 0;
   for (const step of steps) {
     console.log(`\n=== ${step.name} ===`);
     try {
@@ -214,7 +214,7 @@ export const runScenarios = async (http: HttpAdapter): Promise<void> => {
       console.log(`[PASS] ${step.name}`);
       passed += 1;
     } catch (err) {
-      const msg: string = err instanceof Error ? err.message : String(err);
+      const msg = err instanceof Error ? err.message : String(err);
       console.error(`[FAIL] ${step.name}: ${msg}`);
       failed += 1;
     }
