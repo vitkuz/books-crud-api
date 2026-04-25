@@ -33,6 +33,20 @@ export class ApiStack extends Stack {
       projectionType: ProjectionType.ALL,
     });
 
+    dataTable.addGlobalSecondaryIndex({
+      indexName: 'GSI2',
+      partitionKey: { name: 'sk', type: AttributeType.STRING },
+      sortKey: { name: 'updatedAt', type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    dataTable.addGlobalSecondaryIndex({
+      indexName: 'GSI3',
+      partitionKey: { name: 'sk', type: AttributeType.STRING },
+      sortKey: { name: 'createdAt', type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
     const projectRoot: string = path.resolve(__dirname, '..', '..');
     const entry: string = path.join(projectRoot, 'src', 'lambda', 'handler.ts');
     const depsLockFilePath: string = path.join(projectRoot, 'package-lock.json');
