@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import { CfnOutput, Duration, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
 import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { AttributeType, BillingMode, ProjectionType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
@@ -15,6 +16,35 @@ export class ApiStack extends Stack {
       logGroupName: '/aws/lambda/books-api-fn-dev',
       retention: RetentionDays.ONE_DAY,
       removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    const dataTable: Table = new Table(this, 'DataTable', {
+      tableName: 'books-api-data-dev',
+      partitionKey: { name: 'pk', type: AttributeType.STRING },
+      sortKey: { name: 'sk', type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    dataTable.addGlobalSecondaryIndex({
+      indexName: 'GSI1',
+      partitionKey: { name: 'sk', type: AttributeType.STRING },
+      sortKey: { name: 'pk', type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    dataTable.addGlobalSecondaryIndex({
+      indexName: 'GSI2',
+      partitionKey: { name: 'sk', type: AttributeType.STRING },
+      sortKey: { name: 'updatedAt', type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    dataTable.addGlobalSecondaryIndex({
+      indexName: 'GSI3',
+      partitionKey: { name: 'sk', type: AttributeType.STRING },
+      sortKey: { name: 'createdAt', type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
     });
 
     const projectRoot: string = path.resolve(__dirname, '..', '..');
@@ -35,6 +65,7 @@ export class ApiStack extends Stack {
       environment: {
         NODE_ENV: 'production',
         PORT: '3000',
+        DYNAMODB_TABLE_NAME: dataTable.tableName,
       },
       bundling: {
         minify: true,
@@ -44,6 +75,8 @@ export class ApiStack extends Stack {
         externalModules: [],
       },
     });
+
+    dataTable.grantReadWriteData(apiFunction);
 
     const integration: HttpLambdaIntegration = new HttpLambdaIntegration(
       'ApiIntegration',
@@ -75,6 +108,11 @@ export class ApiStack extends Stack {
     new CfnOutput(this, 'FunctionLogGroup', {
       value: logGroup.logGroupName,
       description: 'CloudWatch log group for the Lambda',
+    });
+
+    new CfnOutput(this, 'DataTableName', {
+      value: dataTable.tableName,
+      description: 'DynamoDB single-table name',
     });
   }
 }
