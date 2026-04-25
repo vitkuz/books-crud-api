@@ -13,7 +13,15 @@ export const login = async (payload: LoginPayload): Promise<LoginResult> => {
     logger.debug('login.service invalid-credentials', { email: payload.email });
     return { ok: false, error: 'INVALID_CREDENTIALS' };
   }
-  const token: string = await sessionsService.create(user.id);
-  logger.debug('login.service success', { id: user.id });
-  return { ok: true, user: toUserResponse(user), token };
+  try {
+    const token = await sessionsService.create(user.id);
+    logger.debug('login.service success', { id: user.id });
+    return { ok: true, user: toUserResponse(user), token };
+  } catch (err) {
+    logger.debug('login.service session-create-failed', {
+      id: user.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { ok: false, error: 'INTERNAL' };
+  }
 };

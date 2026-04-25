@@ -14,11 +14,17 @@ type SessionItem = DynamoItem & {
   updatedAt: string;
 };
 
-export const sessionsService = {
-  create: async (userId: string): Promise<string> => {
+export type SessionsService = {
+  create: (userId: string) => Promise<string>;
+  findByToken: (token: string) => Promise<Session | undefined>;
+  deleteByToken: (token: string) => Promise<void>;
+};
+
+export const sessionsService: SessionsService = {
+  create: async (userId) => {
     logger.debug('sessions.service.create start', { userId });
-    const token: string = uuidv4();
-    const now: string = new Date().toISOString();
+    const token = uuidv4();
+    const now = new Date().toISOString();
     await dynamoDb.createOne({
       pk: sessionPk(token),
       sk: SK_VALUE,
@@ -30,7 +36,7 @@ export const sessionsService = {
     return token;
   },
 
-  findByToken: async (token: string): Promise<Session | undefined> => {
+  findByToken: async (token) => {
     logger.debug('sessions.service.findByToken start');
     const item: DynamoItem | undefined = await dynamoDb.getOneById({
       pk: sessionPk(token),
@@ -45,10 +51,9 @@ export const sessionsService = {
     return { userId: session.userId, createdAt: session.createdAt };
   },
 
-  deleteByToken: async (token: string): Promise<boolean> => {
+  deleteByToken: async (token) => {
     logger.debug('sessions.service.deleteByToken start');
     await dynamoDb.deleteOneById({ pk: sessionPk(token), sk: SK_VALUE });
     logger.debug('sessions.service.deleteByToken success');
-    return true;
   },
 };

@@ -19,6 +19,9 @@ type Step = {
   run: (ctx: Context) => Promise<void>;
 };
 
+type AuthHeaders = { authorization: string };
+type AuthRequestConfig = { headers: AuthHeaders };
+
 const expectStatus = (res: AxiosResponse, expected: number, label: string): void => {
   if (res.status !== expected) {
     throw new Error(`${label}: expected status ${expected}, got ${res.status}`);
@@ -86,7 +89,7 @@ const testLoginAndMe = async (ctx: Context): Promise<void> => {
 };
 
 const testAuthorsCrud = async (ctx: Context): Promise<void> => {
-  const auth = { headers: authHeader(ctx.state.userToken) };
+  const auth: AuthRequestConfig = { headers: authHeader(ctx.state.userToken) };
 
   const list1: AxiosResponse = await ctx.http.client.get('/authors');
   expectStatus(list1, 200, 'GET /authors');
@@ -119,7 +122,7 @@ const testAuthorsCrud = async (ctx: Context): Promise<void> => {
 
 const testBooksCrud = async (ctx: Context): Promise<void> => {
   if (!ctx.state.authorId) throw new Error('no author in state — run authors first');
-  const auth = { headers: authHeader(ctx.state.userToken) };
+  const auth: AuthRequestConfig = { headers: authHeader(ctx.state.userToken) };
 
   const create: AxiosResponse = await ctx.http.client.post(
     '/books',
@@ -152,7 +155,7 @@ const testBooksCrud = async (ctx: Context): Promise<void> => {
 
 const testUsersCrud = async (ctx: Context): Promise<void> => {
   if (!ctx.state.userId) throw new Error('no user in state — run register first');
-  const auth = { headers: authHeader(ctx.state.userToken) };
+  const auth: AuthRequestConfig = { headers: authHeader(ctx.state.userToken) };
 
   const get: AxiosResponse = await ctx.http.client.get(`/users/${ctx.state.userId}`);
   expectStatus(get, 200, 'GET /users/:id');
