@@ -56,8 +56,6 @@ export type PresignedReadUrlResponse = {
   expiresInSeconds: number;
 };
 
-export type ImageContentType = 'image/png' | 'image/jpeg' | 'image/webp';
-
 export type AuthLoginResponse = {
   user: UserResponse;
   token: string;

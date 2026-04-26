@@ -49,6 +49,8 @@ export const updateBookUseCase = async (
     authorId: patch.authorId,
     categoryIds,
     year: patch.year,
+    pdfKey: patch.pdfKey,
+    coverKey: patch.coverKey,
   });
   if (!updated) {
     // Race: existed when we checked, gone now. Treat as not-found.

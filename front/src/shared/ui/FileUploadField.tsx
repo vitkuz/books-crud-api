@@ -1,38 +1,34 @@
 import { ChangeEvent, useState } from 'react';
 import { Button } from './Button';
 import { S3Image } from './S3Image';
+import { useFileUpload } from '@/features/files/mutations/files.mutations';
 import { usePresignedReadUrl } from '@/features/files/queries/files.queries';
-import { ImageContentType } from '@/shared/types/api.types';
 
 type FileUploadFieldProps = {
   label: string;
   /** Accept attribute for the <input>, e.g. "image/png,image/jpeg,image/webp" or "application/pdf". */
   accept: string;
-  /** Current persisted S3 key (for preview / download). */
+  /** Persisted S3 key for the current file (preview/download). */
   currentKey: string | undefined;
   /** 'image' renders an inline preview; 'pdf' renders a download link. */
   mode: 'image' | 'pdf';
-  isUploading: boolean;
-  /** For images, contentType comes from the picked file. For PDFs, the parent ignores this argument. */
-  onUpload: (file: File, contentType: ImageContentType | 'application/pdf') => void;
+  /** Allowed MIME types — guards the picker before bytes leave the browser. */
+  allowedMimes: readonly string[];
+  /** Fired after the upload to S3 succeeds, with the key the parent should persist. */
+  onUploaded: (key: string) => void;
 };
-
-const PDF_MIME = 'application/pdf';
-const IMAGE_MIMES: ImageContentType[] = ['image/png', 'image/jpeg', 'image/webp'];
-
-const isImageContentType = (value: string): value is ImageContentType =>
-  (IMAGE_MIMES as string[]).includes(value);
 
 export const FileUploadField = ({
   label,
   accept,
   currentKey,
   mode,
-  isUploading,
-  onUpload,
+  allowedMimes,
+  onUploaded,
 }: FileUploadFieldProps): JSX.Element => {
   const [picked, setPicked] = useState<File | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
+  const upload = useFileUpload();
   const pdfReadUrl = usePresignedReadUrl(mode === 'pdf' ? currentKey : undefined);
 
   const onFileChange = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -42,13 +38,8 @@ export const FileUploadField = ({
       setPicked(undefined);
       return;
     }
-    if (mode === 'image' && !isImageContentType(file.type)) {
-      setError(`Unsupported image type: ${file.type || 'unknown'}. Use PNG, JPEG, or WebP.`);
-      setPicked(undefined);
-      return;
-    }
-    if (mode === 'pdf' && file.type !== PDF_MIME) {
-      setError(`Expected a PDF; got ${file.type || 'unknown'}.`);
+    if (!allowedMimes.includes(file.type)) {
+      setError(`Unsupported type: ${file.type || 'unknown'}. Allowed: ${allowedMimes.join(', ')}.`);
       setPicked(undefined);
       return;
     }
@@ -57,11 +48,15 @@ export const FileUploadField = ({
 
   const onClickUpload = (): void => {
     if (!picked) return;
-    if (mode === 'image' && isImageContentType(picked.type)) {
-      onUpload(picked, picked.type);
-    } else if (mode === 'pdf') {
-      onUpload(picked, PDF_MIME);
-    }
+    upload.mutate(
+      { file: picked, contentType: picked.type },
+      {
+        onSuccess: ({ key }): void => {
+          onUploaded(key);
+          setPicked(undefined);
+        },
+      },
+    );
   };
 
   return (
@@ -73,7 +68,7 @@ export const FileUploadField = ({
       )}
       {mode === 'pdf' && currentKey !== undefined && (
         <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--color-muted)' }}>
-          Current file: <span className="mono">{currentKey.split('/').pop()}</span>
+          Current file uploaded.
           {pdfReadUrl.data && (
             <>
               {' '}—{' '}
@@ -86,7 +81,7 @@ export const FileUploadField = ({
       )}
       {currentKey === undefined && (
         <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--color-muted)' }}>
-          No file uploaded yet.
+          No file selected yet.
         </div>
       )}
 
@@ -95,16 +90,16 @@ export const FileUploadField = ({
           type="file"
           accept={accept}
           onChange={onFileChange}
-          disabled={isUploading}
+          disabled={upload.isPending}
           style={{ fontSize: 'var(--fs-sm)' }}
         />
         <Button
           variant="secondary"
           size="sm"
           onClick={onClickUpload}
-          disabled={!picked || isUploading || error !== undefined}
+          disabled={!picked || upload.isPending || error !== undefined}
         >
-          {isUploading ? 'Uploading…' : 'Upload'}
+          {upload.isPending ? 'Uploading…' : 'Upload'}
         </Button>
       </div>
 

@@ -7,11 +7,12 @@ import { Input } from '@/shared/ui/Input';
 import { Modal } from '@/shared/ui/Modal';
 import { useAuthors } from '@/features/authors/queries/authors.queries';
 import { useCategories } from '@/features/categories/queries/categories.queries';
-import { ImageContentType } from '@/shared/types/api.types';
 import { useBook } from '../queries/books.queries';
 import { useCreateBook, useUpdateBook } from '../mutations/books.mutations';
-import { useUploadBookCover, useUploadBookPdf } from '../mutations/bookUploads.mutations';
 import { bookSchema, BookFormValues } from '../forms/book.schema';
+
+const IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/webp'] as const;
+const PDF_MIMES = ['application/pdf'] as const;
 
 export const BookFormModal = ({
   id,
@@ -26,8 +27,6 @@ export const BookFormModal = ({
   const categoriesQuery = useCategories();
   const createBook = useCreateBook();
   const updateBook = useUpdateBook();
-  const uploadCover = useUploadBookCover();
-  const uploadPdf = useUploadBookPdf();
 
   const form = useForm<BookFormValues>({
     resolver: zodResolver(bookSchema),
@@ -36,6 +35,8 @@ export const BookFormModal = ({
       authorId: '',
       categoryIds: [],
       year: new Date().getFullYear(),
+      pdfKey: undefined,
+      coverKey: undefined,
     },
   });
 
@@ -46,6 +47,8 @@ export const BookFormModal = ({
         authorId: bookQuery.data.author.id,
         categoryIds: bookQuery.data.categories.map((c): string => c.id),
         year: bookQuery.data.year,
+        pdfKey: bookQuery.data.pdfKey,
+        coverKey: bookQuery.data.coverKey,
       });
     }
   }, [bookQuery.data, isEdit, form]);
@@ -66,6 +69,9 @@ export const BookFormModal = ({
   const isLoadingDetail: boolean = isEdit && bookQuery.isLoading;
   const isLoadingDeps: boolean =
     authorsQuery.isLoading || categoriesQuery.isLoading;
+
+  const coverKey: string | undefined = form.watch('coverKey');
+  const pdfKey: string | undefined = form.watch('pdfKey');
 
   return (
     <Modal
@@ -166,42 +172,36 @@ export const BookFormModal = ({
             )}
           </fieldset>
 
-          {isEdit && id !== undefined && bookQuery.data && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 16,
-                paddingTop: 16,
-                borderTop: '1px solid var(--color-border)',
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              paddingTop: 16,
+              borderTop: '1px solid var(--color-border)',
+            }}
+          >
+            <FileUploadField
+              label="Cover image"
+              accept="image/png,image/jpeg,image/webp"
+              allowedMimes={IMAGE_MIMES}
+              currentKey={coverKey}
+              mode="image"
+              onUploaded={(key): void => {
+                form.setValue('coverKey', key, { shouldDirty: true });
               }}
-            >
-              <FileUploadField
-                label="Cover image"
-                accept="image/png,image/jpeg,image/webp"
-                currentKey={bookQuery.data.coverKey}
-                mode="image"
-                isUploading={uploadCover.isPending}
-                onUpload={(file, contentType): void => {
-                  uploadCover.mutate({
-                    bookId: id,
-                    file,
-                    contentType: contentType as ImageContentType,
-                  });
-                }}
-              />
-              <FileUploadField
-                label="PDF"
-                accept="application/pdf"
-                currentKey={bookQuery.data.pdfKey}
-                mode="pdf"
-                isUploading={uploadPdf.isPending}
-                onUpload={(file): void => {
-                  uploadPdf.mutate({ bookId: id, file });
-                }}
-              />
-            </div>
-          )}
+            />
+            <FileUploadField
+              label="PDF"
+              accept="application/pdf"
+              allowedMimes={PDF_MIMES}
+              currentKey={pdfKey}
+              mode="pdf"
+              onUploaded={(key): void => {
+                form.setValue('pdfKey', key, { shouldDirty: true });
+              }}
+            />
+          </div>
         </form>
       )}
     </Modal>

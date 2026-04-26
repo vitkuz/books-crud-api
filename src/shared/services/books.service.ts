@@ -47,6 +47,8 @@ export type CreateBookInput = {
   authorId: string;
   categoryIds: string[];
   year: number;
+  pdfKey?: string;
+  coverKey?: string;
 };
 
 export type UpdateBookInput = {
@@ -54,6 +56,8 @@ export type UpdateBookInput = {
   authorId?: string;
   categoryIds?: string[];
   year?: number;
+  pdfKey?: string;
+  coverKey?: string;
 };
 
 export type BooksService = {
@@ -64,8 +68,6 @@ export type BooksService = {
   findByAuthorId: (authorId: string) => Promise<Book[]>;
   findByCategoryId: (categoryId: string) => Promise<Book[]>;
   update: (id: string, patch: UpdateBookInput) => Promise<Book | undefined>;
-  setBookCoverKey: (id: string, key: string) => Promise<Book | undefined>;
-  setBookPdfKey: (id: string, key: string) => Promise<Book | undefined>;
   delete: (id: string) => Promise<boolean>;
   count: () => Promise<number>;
 };
@@ -79,6 +81,8 @@ export const booksService: BooksService = {
       authorId: input.authorId,
       categoryIds: input.categoryIds,
       year: input.year,
+      pdfKey: input.pdfKey,
+      coverKey: input.coverKey,
       metadata: { createdAt: now, updatedAt: now },
     };
     logger.debug('books.service.create start', { id: book.id });
@@ -162,6 +166,8 @@ export const booksService: BooksService = {
       categoryIds:
         patch.categoryIds !== undefined ? patch.categoryIds : existing.categoryIds,
       year: patch.year !== undefined ? patch.year : existing.year,
+      pdfKey: patch.pdfKey !== undefined ? patch.pdfKey : existing.pdfKey,
+      coverKey: patch.coverKey !== undefined ? patch.coverKey : existing.coverKey,
       metadata: {
         createdAt: existing.metadata.createdAt,
         updatedAt: now,
@@ -174,51 +180,13 @@ export const booksService: BooksService = {
         authorId: next.authorId,
         categoryIds: next.categoryIds,
         year: next.year,
+        pdfKey: next.pdfKey,
+        coverKey: next.coverKey,
         metadata: next.metadata,
         updatedAt: now,
       },
     );
     logger.debug('books.service.update success', { id });
-    return fromItem(updated);
-  },
-
-  setBookCoverKey: async (id, key) => {
-    logger.debug('books.service.setBookCoverKey start', { id, key });
-    const existing: Book | undefined = await booksService.findById(id);
-    if (!existing) {
-      logger.debug('books.service.setBookCoverKey not-found', { id });
-      return undefined;
-    }
-    const now = new Date().toISOString();
-    const updated: DynamoItem = await dynamoDb.patchOneById(
-      { pk: bookPk(id), sk: SK_VALUE },
-      {
-        coverKey: key,
-        metadata: { createdAt: existing.metadata.createdAt, updatedAt: now },
-        updatedAt: now,
-      },
-    );
-    logger.debug('books.service.setBookCoverKey success', { id, key });
-    return fromItem(updated);
-  },
-
-  setBookPdfKey: async (id, key) => {
-    logger.debug('books.service.setBookPdfKey start', { id, key });
-    const existing: Book | undefined = await booksService.findById(id);
-    if (!existing) {
-      logger.debug('books.service.setBookPdfKey not-found', { id });
-      return undefined;
-    }
-    const now = new Date().toISOString();
-    const updated: DynamoItem = await dynamoDb.patchOneById(
-      { pk: bookPk(id), sk: SK_VALUE },
-      {
-        pdfKey: key,
-        metadata: { createdAt: existing.metadata.createdAt, updatedAt: now },
-        updatedAt: now,
-      },
-    );
-    logger.debug('books.service.setBookPdfKey success', { id, key });
     return fromItem(updated);
   },
 
