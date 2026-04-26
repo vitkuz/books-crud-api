@@ -2,7 +2,11 @@ import { Request, Response } from 'express';
 import { ZodError } from 'zod';
 import { authorsService } from '../../../shared/services/authors.service';
 import { Author, DeleteAuthorResult } from '../../../shared/types/author.types';
-import { deleteAuthorUseCase } from '../../../shared/usecases';
+import {
+  createAuthorUseCase,
+  deleteAuthorUseCase,
+  updateAuthorUseCase,
+} from '../../../shared/usecases';
 import {
   authorIdParamSchema,
   batchAuthorsSchema,
@@ -18,7 +22,7 @@ export const postAuthor = async (req: Request, res: Response): Promise<Response>
   const parsed: ReturnType<typeof createAuthorSchema.safeParse> = createAuthorSchema.safeParse(req.body);
   if (!parsed.success) return badRequest(res, parsed.error);
   const payload: CreateAuthorPayload = parsed.data;
-  const author: Author = await authorsService.create(payload);
+  const author: Author = await createAuthorUseCase(payload);
   return res.status(201).json(author);
 };
 
@@ -48,7 +52,7 @@ export const putAuthor = async (req: Request, res: Response): Promise<Response> 
   const bodyParsed: ReturnType<typeof updateAuthorSchema.safeParse> = updateAuthorSchema.safeParse(req.body);
   if (!bodyParsed.success) return badRequest(res, bodyParsed.error);
   const payload: UpdateAuthorPayload = bodyParsed.data;
-  const updated: Author | undefined = await authorsService.update(paramsParsed.data.id, payload);
+  const updated: Author | undefined = await updateAuthorUseCase(paramsParsed.data.id, payload);
   if (!updated) return res.status(404).json({ error: 'NotFound' });
   return res.status(200).json(updated);
 };

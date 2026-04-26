@@ -94,6 +94,7 @@ export const FileUploadField = ({
           style={{ fontSize: 'var(--fs-sm)' }}
         />
         <Button
+          type="button"
           variant="secondary"
           size="sm"
           onClick={onClickUpload}

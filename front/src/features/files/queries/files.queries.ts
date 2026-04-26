@@ -10,7 +10,7 @@ export const usePresignedReadUrl = (
   key: string | undefined,
 ): UseQueryResult<PresignedReadUrlResponse> => {
   const { state } = useAuth();
-  const isAuthed: boolean = state.status === 'authed';
+  const isAuthed = state.status === 'authed';
   return useQuery({
     queryKey: qk.files.readUrl(key ?? ''),
     queryFn: (): Promise<PresignedReadUrlResponse> => filesApi.getReadUrl(key!),

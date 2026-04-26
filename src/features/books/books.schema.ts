@@ -9,17 +9,11 @@ export const createBookSchema = z.object({
   coverKey: z.string().min(1).optional(),
 });
 
-export const updateBookSchema = createBookSchema.partial().refine(
-  (patch: Partial<{
-    title: string;
-    authorId: string;
-    categoryIds: string[];
-    year: number;
-    pdfKey: string;
-    coverKey: string;
-  }>): boolean => Object.keys(patch).length > 0,
-  { message: 'At least one field must be provided' },
-);
+export const updateBookSchema = createBookSchema
+  .partial()
+  .refine((patch): boolean => Object.keys(patch).length > 0, {
+    message: 'At least one field must be provided',
+  });
 
 export const bookIdParamSchema = z.object({
   id: z.string().uuid(),
