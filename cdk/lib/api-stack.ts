@@ -3,6 +3,7 @@ import { CfnOutput, Duration, RemovalPolicy, Stack, StackProps } from 'aws-cdk-l
 import { CorsHttpMethod, HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { AttributeType, BillingMode, ProjectionType, Table } from 'aws-cdk-lib/aws-dynamodb';
+import { EventBus } from 'aws-cdk-lib/aws-events';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
@@ -57,6 +58,10 @@ export class ApiStack extends Stack {
       enforceSSL: true,
     });
 
+    const eventBus: EventBus = new EventBus(this, 'EventBus', {
+      eventBusName: 'books-api-events-dev',
+    });
+
     const projectRoot: string = path.resolve(__dirname, '..', '..');
     const entry: string = path.join(projectRoot, 'src', 'lambda', 'handler.ts');
     const depsLockFilePath: string = path.join(projectRoot, 'package-lock.json');
@@ -77,6 +82,7 @@ export class ApiStack extends Stack {
         PORT: '3000',
         DYNAMODB_TABLE_NAME: dataTable.tableName,
         S3_BUCKET_NAME: filesBucket.bucketName,
+        EVENTBRIDGE_EVENT_BUS_NAME: eventBus.eventBusName,
       },
       bundling: {
         minify: true,
@@ -89,6 +95,7 @@ export class ApiStack extends Stack {
 
     dataTable.grantReadWriteData(apiFunction);
     filesBucket.grantReadWrite(apiFunction);
+    eventBus.grantPutEventsTo(apiFunction);
 
     const integration: HttpLambdaIntegration = new HttpLambdaIntegration(
       'ApiIntegration',
@@ -136,6 +143,11 @@ export class ApiStack extends Stack {
     new CfnOutput(this, 'FilesBucketName', {
       value: filesBucket.bucketName,
       description: 'S3 bucket for general file storage',
+    });
+
+    new CfnOutput(this, 'EventBusName', {
+      value: eventBus.eventBusName,
+      description: 'EventBridge event bus for domain events',
     });
   }
 }
