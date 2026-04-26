@@ -1,0 +1,63 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.field__label {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.field__input,
+.field__select,
+.field__textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: var(--fs-base);
+  color: var(--color-text);
+  transition: border-color 80ms ease;
+}
+
+.field__input:hover,
+.field__select:hover,
+.field__textarea:hover {
+  border-color: var(--color-text);
+}
+
+.field__input:focus-visible,
+.field__select:focus-visible,
+.field__textarea:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+  border-color: var(--color-accent);
+}
+
+.field__input--error {
+  border-color: var(--color-danger);
+}
+
+.field__hint {
+  font-size: var(--fs-xs);
+  color: var(--color-muted);
+}
+
+.field__error {
+  font-size: var(--fs-xs);
+  color: var(--color-danger);
+}
+
+.field__textarea {
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.field__select {
+  cursor: pointer;
+}
