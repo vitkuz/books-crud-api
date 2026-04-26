@@ -4,22 +4,23 @@ import { Card } from '@/shared/ui/Card';
 import { S3Image } from '@/shared/ui/S3Image';
 import { useOpenModalLink } from '@/app/modals/modalUrlSync';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { Author } from '@/shared/types/api.types';
 import { useAuthor } from '../queries/authors.queries';
 
 export const AuthorDetailPage = (): JSX.Element => {
   const params = useParams<{ id: string }>();
-  const id: string | undefined = params.id;
+  const id = params.id;
   const { state } = useAuth();
   const openModal = useOpenModalLink();
   const authorQuery = useAuthor(id);
 
-  const isAuthed: boolean = state.status === 'authed';
+  const isAuthed = state.status === 'authed';
 
   if (authorQuery.isLoading) return <div className="empty">Loading…</div>;
   if (authorQuery.isError || !authorQuery.data)
     return <div className="empty">Author not found.</div>;
 
-  const a = authorQuery.data;
+  const a: Author = authorQuery.data;
 
   return (
     <>

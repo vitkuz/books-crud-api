@@ -3,22 +3,23 @@ import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { useOpenModalLink } from '@/app/modals/modalUrlSync';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { Category } from '@/shared/types/api.types';
 import { useCategory } from '../queries/categories.queries';
 
 export const CategoryDetailPage = (): JSX.Element => {
   const params = useParams<{ id: string }>();
-  const id: string | undefined = params.id;
+  const id = params.id;
   const { state } = useAuth();
   const openModal = useOpenModalLink();
   const categoryQuery = useCategory(id);
 
-  const isAuthed: boolean = state.status === 'authed';
+  const isAuthed = state.status === 'authed';
 
   if (categoryQuery.isLoading) return <div className="empty">Loading…</div>;
   if (categoryQuery.isError || !categoryQuery.data)
     return <div className="empty">Category not found.</div>;
 
-  const c = categoryQuery.data;
+  const c: Category = categoryQuery.data;
 
   return (
     <>
