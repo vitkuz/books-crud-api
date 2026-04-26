@@ -1,6 +1,10 @@
 import { fetchJson } from '@/shared/lib/http/fetchJson';
 import { fetchJsonAuthed } from '@/shared/lib/http/fetchJsonAuthed';
-import { Author } from '@/shared/types/api.types';
+import {
+  Author,
+  ImageContentType,
+  PresignedUploadUrlResponse,
+} from '@/shared/types/api.types';
 
 export type CreateAuthorInput = { name: string };
 export type UpdateAuthorInput = { name?: string };
@@ -20,4 +24,9 @@ export const authorsApi = {
     }),
   delete: (id: string): Promise<void> =>
     fetchJsonAuthed<void>(`/authors/${id}`, { method: 'DELETE' }),
+  mintPortraitUploadUrl: (id: string, contentType: ImageContentType): Promise<PresignedUploadUrlResponse> =>
+    fetchJsonAuthed<PresignedUploadUrlResponse>(`/authors/${id}/portrait/presigned-url`, {
+      method: 'POST',
+      body: JSON.stringify({ contentType }),
+    }),
 };

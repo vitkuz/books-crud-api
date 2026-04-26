@@ -2,12 +2,15 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/shared/ui/Button';
+import { FileUploadField } from '@/shared/ui/FileUploadField';
 import { Input } from '@/shared/ui/Input';
 import { Modal } from '@/shared/ui/Modal';
 import { useAuthors } from '@/features/authors/queries/authors.queries';
 import { useCategories } from '@/features/categories/queries/categories.queries';
+import { ImageContentType } from '@/shared/types/api.types';
 import { useBook } from '../queries/books.queries';
 import { useCreateBook, useUpdateBook } from '../mutations/books.mutations';
+import { useUploadBookCover, useUploadBookPdf } from '../mutations/bookUploads.mutations';
 import { bookSchema, BookFormValues } from '../forms/book.schema';
 
 export const BookFormModal = ({
@@ -23,6 +26,8 @@ export const BookFormModal = ({
   const categoriesQuery = useCategories();
   const createBook = useCreateBook();
   const updateBook = useUpdateBook();
+  const uploadCover = useUploadBookCover();
+  const uploadPdf = useUploadBookPdf();
 
   const form = useForm<BookFormValues>({
     resolver: zodResolver(bookSchema),
@@ -160,6 +165,43 @@ export const BookFormModal = ({
               </p>
             )}
           </fieldset>
+
+          {isEdit && id !== undefined && bookQuery.data && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                paddingTop: 16,
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              <FileUploadField
+                label="Cover image"
+                accept="image/png,image/jpeg,image/webp"
+                currentKey={bookQuery.data.coverKey}
+                mode="image"
+                isUploading={uploadCover.isPending}
+                onUpload={(file, contentType): void => {
+                  uploadCover.mutate({
+                    bookId: id,
+                    file,
+                    contentType: contentType as ImageContentType,
+                  });
+                }}
+              />
+              <FileUploadField
+                label="PDF"
+                accept="application/pdf"
+                currentKey={bookQuery.data.pdfKey}
+                mode="pdf"
+                isUploading={uploadPdf.isPending}
+                onUpload={(file): void => {
+                  uploadPdf.mutate({ bookId: id, file });
+                }}
+              />
+            </div>
+          )}
         </form>
       )}
     </Modal>

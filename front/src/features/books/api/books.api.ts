@@ -1,6 +1,10 @@
 import { fetchJson } from '@/shared/lib/http/fetchJson';
 import { fetchJsonAuthed } from '@/shared/lib/http/fetchJsonAuthed';
-import { BookResponse } from '@/shared/types/api.types';
+import {
+  BookResponse,
+  ImageContentType,
+  PresignedUploadUrlResponse,
+} from '@/shared/types/api.types';
 
 export type CreateBookInput = {
   title: string;
@@ -32,4 +36,14 @@ export const booksApi = {
     }),
   delete: (id: string): Promise<void> =>
     fetchJsonAuthed<void>(`/books/${id}`, { method: 'DELETE' }),
+  mintCoverUploadUrl: (id: string, contentType: ImageContentType): Promise<PresignedUploadUrlResponse> =>
+    fetchJsonAuthed<PresignedUploadUrlResponse>(`/books/${id}/cover/presigned-url`, {
+      method: 'POST',
+      body: JSON.stringify({ contentType }),
+    }),
+  mintPdfUploadUrl: (id: string): Promise<PresignedUploadUrlResponse> =>
+    fetchJsonAuthed<PresignedUploadUrlResponse>(`/books/${id}/pdf/presigned-url`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
 };

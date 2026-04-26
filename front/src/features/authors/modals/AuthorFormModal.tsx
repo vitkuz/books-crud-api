@@ -2,10 +2,13 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/shared/ui/Button';
+import { FileUploadField } from '@/shared/ui/FileUploadField';
 import { Input } from '@/shared/ui/Input';
 import { Modal } from '@/shared/ui/Modal';
+import { ImageContentType } from '@/shared/types/api.types';
 import { useAuthor } from '../queries/authors.queries';
 import { useCreateAuthor, useUpdateAuthor } from '../mutations/authors.mutations';
+import { useUploadAuthorPortrait } from '../mutations/authorUploads.mutations';
 import { authorSchema, AuthorFormValues } from '../forms/author.schema';
 
 export const AuthorFormModal = ({
@@ -19,6 +22,7 @@ export const AuthorFormModal = ({
   const authorQuery = useAuthor(id);
   const createAuthor = useCreateAuthor();
   const updateAuthor = useUpdateAuthor();
+  const uploadPortrait = useUploadAuthorPortrait();
 
   const form = useForm<AuthorFormValues>({
     resolver: zodResolver(authorSchema),
@@ -68,6 +72,29 @@ export const AuthorFormModal = ({
             error={form.formState.errors.name?.message}
             {...form.register('name')}
           />
+          {isEdit && id !== undefined && authorQuery.data && (
+            <div
+              style={{
+                paddingTop: 16,
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              <FileUploadField
+                label="Portrait"
+                accept="image/png,image/jpeg,image/webp"
+                currentKey={authorQuery.data.portraitKey}
+                mode="image"
+                isUploading={uploadPortrait.isPending}
+                onUpload={(file, contentType): void => {
+                  uploadPortrait.mutate({
+                    authorId: id,
+                    file,
+                    contentType: contentType as ImageContentType,
+                  });
+                }}
+              />
+            </div>
+          )}
         </form>
       )}
     </Modal>
