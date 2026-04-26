@@ -2,8 +2,8 @@ import { fetchJson } from '@/shared/lib/http/fetchJson';
 import { fetchJsonAuthed } from '@/shared/lib/http/fetchJsonAuthed';
 import { Author } from '@/shared/types/api.types';
 
-export type CreateAuthorInput = { name: string };
-export type UpdateAuthorInput = { name?: string };
+export type CreateAuthorInput = { name: string; portraitKey?: string };
+export type UpdateAuthorInput = { name?: string; portraitKey?: string };
 
 export const authorsApi = {
   list: (): Promise<Author[]> => fetchJson<Author[]>('/authors'),

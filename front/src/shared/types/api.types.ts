@@ -13,6 +13,7 @@ export type UserResponse = {
 export type Author = {
   id: string;
   name: string;
+  portraitKey?: string;
   metadata: Metadata;
 };
 
@@ -28,6 +29,8 @@ export type Book = {
   authorId: string;
   categoryIds: string[];
   year: number;
+  pdfKey?: string;
+  coverKey?: string;
   metadata: Metadata;
 };
 
@@ -37,7 +40,20 @@ export type BookResponse = {
   author: Author;
   categories: Category[];
   year: number;
+  pdfKey?: string;
+  coverKey?: string;
   metadata: Metadata;
+};
+
+export type PresignedUploadUrlResponse = {
+  url: string;
+  key: string;
+  expiresInSeconds: number;
+};
+
+export type PresignedReadUrlResponse = {
+  url: string;
+  expiresInSeconds: number;
 };
 
 export type AuthLoginResponse = {

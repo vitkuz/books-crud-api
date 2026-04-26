@@ -7,6 +7,8 @@ export type CreateBookInput = {
   authorId: string;
   categoryIds: string[];
   year: number;
+  pdfKey?: string;
+  coverKey?: string;
 };
 
 export type UpdateBookInput = {
@@ -14,6 +16,8 @@ export type UpdateBookInput = {
   authorId?: string;
   categoryIds?: string[];
   year?: number;
+  pdfKey?: string;
+  coverKey?: string;
 };
 
 export const booksApi = {

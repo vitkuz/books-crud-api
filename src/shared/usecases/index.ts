@@ -8,6 +8,8 @@ export type { AuthSuccess } from './auth.types';
 
 export { createBookUseCase } from './create-book.usecase';
 export { updateBookUseCase } from './update-book.usecase';
+export { createAuthorUseCase } from './create-author.usecase';
+export { updateAuthorUseCase } from './update-author.usecase';
 export { deleteAuthorUseCase } from './delete-author.usecase';
 export { deleteCategoryUseCase } from './delete-category.usecase';
 export { createPresignedUrlUseCase } from './create-presigned-url.usecase';

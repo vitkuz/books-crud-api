@@ -8,6 +8,8 @@ export type Book = {
   authorId: string;
   categoryIds: string[];
   year: number;
+  pdfKey?: string;
+  coverKey?: string;
   metadata: Metadata;
 };
 
@@ -17,6 +19,8 @@ export type BookResponse = {
   author: Author;
   categories: Category[];
   year: number;
+  pdfKey?: string;
+  coverKey?: string;
   metadata: Metadata;
 };
 

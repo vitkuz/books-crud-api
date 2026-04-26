@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/Button';
+import { S3Image } from '@/shared/ui/S3Image';
 import { useOpenModalLink } from '@/app/modals/modalUrlSync';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useAuthors } from '../queries/authors.queries';
@@ -37,6 +38,7 @@ export const AuthorsListPage = (): JSX.Element => {
         <table className="list">
           <thead>
             <tr>
+              {isAuthed && <th style={{ width: 56 }}></th>}
               <th>Name</th>
               <th>Created</th>
               {isAuthed && <th></th>}
@@ -45,6 +47,11 @@ export const AuthorsListPage = (): JSX.Element => {
           <tbody>
             {authorsQuery.data.map((a: Author) => (
               <tr key={a.id}>
+                {isAuthed && (
+                  <td style={{ width: 56 }}>
+                    <S3Image s3Key={a.portraitKey} alt="" width={40} height={40} />
+                  </td>
+                )}
                 <td>{a.name}</td>
                 <td className="mono" style={{ color: 'var(--color-muted)' }}>
                   {new Date(a.metadata.createdAt).toLocaleDateString()}

@@ -9,6 +9,8 @@ export const bookSchema = z.object({
     .int('Year must be a whole number')
     .min(0, 'Year cannot be negative')
     .max(3000, 'Year too far in the future'),
+  pdfKey: z.string().min(1).optional(),
+  coverKey: z.string().min(1).optional(),
 });
 
 export type BookFormValues = z.infer<typeof bookSchema>;

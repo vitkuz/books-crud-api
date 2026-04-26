@@ -18,6 +18,7 @@ const toItem = (author: Author): AuthorItem => ({
   sk: SK_VALUE,
   id: author.id,
   name: author.name,
+  portraitKey: author.portraitKey,
   metadata: author.metadata,
   createdAt: author.metadata.createdAt,
   updatedAt: author.metadata.updatedAt,
@@ -28,12 +29,13 @@ const fromItem = (item: DynamoItem): Author => {
   return {
     id: a.id,
     name: a.name,
+    portraitKey: a.portraitKey,
     metadata: a.metadata,
   };
 };
 
-export type CreateAuthorInput = { name: string };
-export type UpdateAuthorInput = { name?: string };
+export type CreateAuthorInput = { name: string; portraitKey?: string };
+export type UpdateAuthorInput = { name?: string; portraitKey?: string };
 
 export type AuthorsService = {
   create: (input: CreateAuthorInput) => Promise<Author>;
@@ -51,6 +53,7 @@ export const authorsService: AuthorsService = {
     const author: Author = {
       id: uuidv4(),
       name: input.name,
+      portraitKey: input.portraitKey,
       metadata: { createdAt: now, updatedAt: now },
     };
     await dynamoDb.createOne(toItem(author));
@@ -103,6 +106,7 @@ export const authorsService: AuthorsService = {
     const next: Author = {
       id: existing.id,
       name: patch.name !== undefined ? patch.name : existing.name,
+      portraitKey: patch.portraitKey !== undefined ? patch.portraitKey : existing.portraitKey,
       metadata: {
         createdAt: existing.metadata.createdAt,
         updatedAt: now,
@@ -112,6 +116,7 @@ export const authorsService: AuthorsService = {
       { pk: authorPk(id), sk: SK_VALUE },
       {
         name: next.name,
+        portraitKey: next.portraitKey,
         metadata: next.metadata,
         updatedAt: now,
       },

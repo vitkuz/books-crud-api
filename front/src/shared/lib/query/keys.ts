@@ -18,4 +18,7 @@ export const qk = {
     list: () => ['categories', 'list'] as const,
     detail: (id: string) => ['categories', 'detail', id] as const,
   },
+  files: {
+    readUrl: (key: string) => ['files', 'readUrl', key] as const,
+  },
 };

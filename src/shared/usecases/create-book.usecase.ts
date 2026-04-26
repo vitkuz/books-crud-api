@@ -35,6 +35,8 @@ export const createBookUseCase = async (
     authorId: input.authorId,
     categoryIds,
     year: input.year,
+    pdfKey: input.pdfKey,
+    coverKey: input.coverKey,
   });
   logger.debug('create-book.usecase success', { id: book.id });
   return { ok: true, book };

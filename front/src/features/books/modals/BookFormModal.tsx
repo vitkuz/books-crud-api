@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/shared/ui/Button';
+import { FileUploadField } from '@/shared/ui/FileUploadField';
 import { Input } from '@/shared/ui/Input';
 import { Modal } from '@/shared/ui/Modal';
 import { useAuthors } from '@/features/authors/queries/authors.queries';
@@ -9,6 +10,9 @@ import { useCategories } from '@/features/categories/queries/categories.queries'
 import { useBook } from '../queries/books.queries';
 import { useCreateBook, useUpdateBook } from '../mutations/books.mutations';
 import { bookSchema, BookFormValues } from '../forms/book.schema';
+
+const IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/webp'] as const;
+const PDF_MIMES = ['application/pdf'] as const;
 
 export const BookFormModal = ({
   id,
@@ -31,6 +35,8 @@ export const BookFormModal = ({
       authorId: '',
       categoryIds: [],
       year: new Date().getFullYear(),
+      pdfKey: undefined,
+      coverKey: undefined,
     },
   });
 
@@ -41,6 +47,8 @@ export const BookFormModal = ({
         authorId: bookQuery.data.author.id,
         categoryIds: bookQuery.data.categories.map((c): string => c.id),
         year: bookQuery.data.year,
+        pdfKey: bookQuery.data.pdfKey,
+        coverKey: bookQuery.data.coverKey,
       });
     }
   }, [bookQuery.data, isEdit, form]);
@@ -61,6 +69,9 @@ export const BookFormModal = ({
   const isLoadingDetail: boolean = isEdit && bookQuery.isLoading;
   const isLoadingDeps: boolean =
     authorsQuery.isLoading || categoriesQuery.isLoading;
+
+  const coverKey: string | undefined = form.watch('coverKey');
+  const pdfKey: string | undefined = form.watch('pdfKey');
 
   return (
     <Modal
@@ -160,6 +171,37 @@ export const BookFormModal = ({
               </p>
             )}
           </fieldset>
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+              paddingTop: 16,
+              borderTop: '1px solid var(--color-border)',
+            }}
+          >
+            <FileUploadField
+              label="Cover image"
+              accept="image/png,image/jpeg,image/webp"
+              allowedMimes={IMAGE_MIMES}
+              currentKey={coverKey}
+              mode="image"
+              onUploaded={(key): void => {
+                form.setValue('coverKey', key, { shouldDirty: true });
+              }}
+            />
+            <FileUploadField
+              label="PDF"
+              accept="application/pdf"
+              allowedMimes={PDF_MIMES}
+              currentKey={pdfKey}
+              mode="pdf"
+              onUploaded={(key): void => {
+                form.setValue('pdfKey', key, { shouldDirty: true });
+              }}
+            />
+          </div>
         </form>
       )}
     </Modal>

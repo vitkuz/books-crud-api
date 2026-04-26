@@ -7,7 +7,7 @@ import { EventBus } from 'aws-cdk-lib/aws-events';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
-import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
+import { BlockPublicAccess, Bucket, BucketEncryption, HttpMethods } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
 export class ApiStack extends Stack {
@@ -56,6 +56,15 @@ export class ApiStack extends Stack {
       encryption: BucketEncryption.S3_MANAGED,
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
+      cors: [
+        {
+          allowedMethods: [HttpMethods.GET, HttpMethods.PUT, HttpMethods.HEAD],
+          allowedOrigins: ['*'],
+          allowedHeaders: ['*'],
+          exposedHeaders: ['ETag'],
+          maxAge: 3000,
+        },
+      ],
     });
 
     const eventBus: EventBus = new EventBus(this, 'EventBus', {

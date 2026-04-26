@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/Button';
+import { S3Image } from '@/shared/ui/S3Image';
 import { useOpenModalLink } from '@/app/modals/modalUrlSync';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useBooks } from '../queries/books.queries';
@@ -41,6 +42,7 @@ export const BooksListPage = (): JSX.Element => {
         <table className="list">
           <thead>
             <tr>
+              {isAuthed && <th style={{ width: 56 }}></th>}
               <th>Title</th>
               <th>Author</th>
               <th>Year</th>
@@ -51,6 +53,11 @@ export const BooksListPage = (): JSX.Element => {
           <tbody>
             {booksQuery.data.map((b: BookResponse) => (
               <tr key={b.id}>
+                {isAuthed && (
+                  <td style={{ width: 56 }}>
+                    <S3Image s3Key={b.coverKey} alt="" width={40} height={56} />
+                  </td>
+                )}
                 <td>
                   <Link to={`/books/${b.id}`}>{b.title}</Link>
                 </td>

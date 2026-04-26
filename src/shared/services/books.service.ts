@@ -21,6 +21,8 @@ const toItem = (book: Book): BookItem => ({
   authorId: book.authorId,
   categoryIds: book.categoryIds,
   year: book.year,
+  pdfKey: book.pdfKey,
+  coverKey: book.coverKey,
   metadata: book.metadata,
   createdAt: book.metadata.createdAt,
   updatedAt: book.metadata.updatedAt,
@@ -34,6 +36,8 @@ const fromItem = (item: DynamoItem): Book => {
     authorId: b.authorId,
     categoryIds: b.categoryIds,
     year: b.year,
+    pdfKey: b.pdfKey,
+    coverKey: b.coverKey,
     metadata: b.metadata,
   };
 };
@@ -43,6 +47,8 @@ export type CreateBookInput = {
   authorId: string;
   categoryIds: string[];
   year: number;
+  pdfKey?: string;
+  coverKey?: string;
 };
 
 export type UpdateBookInput = {
@@ -50,6 +56,8 @@ export type UpdateBookInput = {
   authorId?: string;
   categoryIds?: string[];
   year?: number;
+  pdfKey?: string;
+  coverKey?: string;
 };
 
 export type BooksService = {
@@ -73,6 +81,8 @@ export const booksService: BooksService = {
       authorId: input.authorId,
       categoryIds: input.categoryIds,
       year: input.year,
+      pdfKey: input.pdfKey,
+      coverKey: input.coverKey,
       metadata: { createdAt: now, updatedAt: now },
     };
     logger.debug('books.service.create start', { id: book.id });
@@ -156,6 +166,8 @@ export const booksService: BooksService = {
       categoryIds:
         patch.categoryIds !== undefined ? patch.categoryIds : existing.categoryIds,
       year: patch.year !== undefined ? patch.year : existing.year,
+      pdfKey: patch.pdfKey !== undefined ? patch.pdfKey : existing.pdfKey,
+      coverKey: patch.coverKey !== undefined ? patch.coverKey : existing.coverKey,
       metadata: {
         createdAt: existing.metadata.createdAt,
         updatedAt: now,
@@ -168,6 +180,8 @@ export const booksService: BooksService = {
         authorId: next.authorId,
         categoryIds: next.categoryIds,
         year: next.year,
+        pdfKey: next.pdfKey,
+        coverKey: next.coverKey,
         metadata: next.metadata,
         updatedAt: now,
       },
