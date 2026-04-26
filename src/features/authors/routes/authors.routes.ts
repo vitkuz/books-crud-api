@@ -10,6 +10,11 @@ authorsRouter.post('/', requireAuth, asyncHandler(authorsController.postAuthor))
 authorsRouter.post('/batch', requireAuth, asyncHandler(authorsController.postAuthorsBatch));
 authorsRouter.get('/:id', asyncHandler(authorsController.getAuthorById));
 authorsRouter.put('/:id', requireAuth, asyncHandler(authorsController.putAuthor));
+authorsRouter.post(
+  '/:id/portrait/presigned-url',
+  requireAuth,
+  asyncHandler(authorsController.postAuthorPortraitUploadUrl),
+);
 authorsRouter.delete('/:id', requireAuth, asyncHandler(authorsController.deleteAuthorById));
 
 export default authorsRouter;

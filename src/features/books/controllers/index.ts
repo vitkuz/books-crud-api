@@ -6,4 +6,6 @@ export {
   putBook,
   deleteBookById,
   postBooksBatch,
+  postBookCoverUploadUrl,
+  postBookPdfUploadUrl,
 } from './books.controller';

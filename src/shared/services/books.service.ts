@@ -21,6 +21,8 @@ const toItem = (book: Book): BookItem => ({
   authorId: book.authorId,
   categoryIds: book.categoryIds,
   year: book.year,
+  pdfKey: book.pdfKey,
+  coverKey: book.coverKey,
   metadata: book.metadata,
   createdAt: book.metadata.createdAt,
   updatedAt: book.metadata.updatedAt,
@@ -34,6 +36,8 @@ const fromItem = (item: DynamoItem): Book => {
     authorId: b.authorId,
     categoryIds: b.categoryIds,
     year: b.year,
+    pdfKey: b.pdfKey,
+    coverKey: b.coverKey,
     metadata: b.metadata,
   };
 };
@@ -60,6 +64,8 @@ export type BooksService = {
   findByAuthorId: (authorId: string) => Promise<Book[]>;
   findByCategoryId: (categoryId: string) => Promise<Book[]>;
   update: (id: string, patch: UpdateBookInput) => Promise<Book | undefined>;
+  setBookCoverKey: (id: string, key: string) => Promise<Book | undefined>;
+  setBookPdfKey: (id: string, key: string) => Promise<Book | undefined>;
   delete: (id: string) => Promise<boolean>;
   count: () => Promise<number>;
 };
@@ -173,6 +179,46 @@ export const booksService: BooksService = {
       },
     );
     logger.debug('books.service.update success', { id });
+    return fromItem(updated);
+  },
+
+  setBookCoverKey: async (id, key) => {
+    logger.debug('books.service.setBookCoverKey start', { id, key });
+    const existing: Book | undefined = await booksService.findById(id);
+    if (!existing) {
+      logger.debug('books.service.setBookCoverKey not-found', { id });
+      return undefined;
+    }
+    const now = new Date().toISOString();
+    const updated: DynamoItem = await dynamoDb.patchOneById(
+      { pk: bookPk(id), sk: SK_VALUE },
+      {
+        coverKey: key,
+        metadata: { createdAt: existing.metadata.createdAt, updatedAt: now },
+        updatedAt: now,
+      },
+    );
+    logger.debug('books.service.setBookCoverKey success', { id, key });
+    return fromItem(updated);
+  },
+
+  setBookPdfKey: async (id, key) => {
+    logger.debug('books.service.setBookPdfKey start', { id, key });
+    const existing: Book | undefined = await booksService.findById(id);
+    if (!existing) {
+      logger.debug('books.service.setBookPdfKey not-found', { id });
+      return undefined;
+    }
+    const now = new Date().toISOString();
+    const updated: DynamoItem = await dynamoDb.patchOneById(
+      { pk: bookPk(id), sk: SK_VALUE },
+      {
+        pdfKey: key,
+        metadata: { createdAt: existing.metadata.createdAt, updatedAt: now },
+        updatedAt: now,
+      },
+    );
+    logger.debug('books.service.setBookPdfKey success', { id, key });
     return fromItem(updated);
   },
 

@@ -5,4 +5,5 @@ export {
   putAuthor,
   deleteAuthorById,
   postAuthorsBatch,
+  postAuthorPortraitUploadUrl,
 } from './authors.controller';

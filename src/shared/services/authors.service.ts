@@ -18,6 +18,7 @@ const toItem = (author: Author): AuthorItem => ({
   sk: SK_VALUE,
   id: author.id,
   name: author.name,
+  portraitKey: author.portraitKey,
   metadata: author.metadata,
   createdAt: author.metadata.createdAt,
   updatedAt: author.metadata.updatedAt,
@@ -28,6 +29,7 @@ const fromItem = (item: DynamoItem): Author => {
   return {
     id: a.id,
     name: a.name,
+    portraitKey: a.portraitKey,
     metadata: a.metadata,
   };
 };
@@ -41,6 +43,7 @@ export type AuthorsService = {
   findManyByIds: (ids: string[]) => Promise<Author[]>;
   findAll: () => Promise<Author[]>;
   update: (id: string, patch: UpdateAuthorInput) => Promise<Author | undefined>;
+  setAuthorPortraitKey: (id: string, key: string) => Promise<Author | undefined>;
   delete: (id: string) => Promise<boolean>;
 };
 
@@ -117,6 +120,26 @@ export const authorsService: AuthorsService = {
       },
     );
     logger.debug('authors.service.update success', { id });
+    return fromItem(updated);
+  },
+
+  setAuthorPortraitKey: async (id, key) => {
+    logger.debug('authors.service.setAuthorPortraitKey start', { id, key });
+    const existing: Author | undefined = await authorsService.findById(id);
+    if (!existing) {
+      logger.debug('authors.service.setAuthorPortraitKey not-found', { id });
+      return undefined;
+    }
+    const now = new Date().toISOString();
+    const updated: DynamoItem = await dynamoDb.patchOneById(
+      { pk: authorPk(id), sk: SK_VALUE },
+      {
+        portraitKey: key,
+        metadata: { createdAt: existing.metadata.createdAt, updatedAt: now },
+        updatedAt: now,
+      },
+    );
+    logger.debug('authors.service.setAuthorPortraitKey success', { id, key });
     return fromItem(updated);
   },
 

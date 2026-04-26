@@ -11,6 +11,16 @@ booksRouter.post('/batch', requireAuth, asyncHandler(booksController.postBooksBa
 booksRouter.get('/count', asyncHandler(booksController.getBooksCount));
 booksRouter.get('/:id', asyncHandler(booksController.getBookById));
 booksRouter.put('/:id', requireAuth, asyncHandler(booksController.putBook));
+booksRouter.post(
+  '/:id/cover/presigned-url',
+  requireAuth,
+  asyncHandler(booksController.postBookCoverUploadUrl),
+);
+booksRouter.post(
+  '/:id/pdf/presigned-url',
+  requireAuth,
+  asyncHandler(booksController.postBookPdfUploadUrl),
+);
 booksRouter.delete('/:id', requireAuth, asyncHandler(booksController.deleteBookById));
 
 export default booksRouter;

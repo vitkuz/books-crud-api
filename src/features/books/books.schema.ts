@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { IMAGE_CONTENT_TYPES } from '../../shared/utils/content-type.utils';
 
 export const createBookSchema = z.object({
   title: z.string().min(1),
@@ -23,4 +24,8 @@ export const bookIdParamSchema = z.object({
 
 export const batchBooksSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(100),
+});
+
+export const bookCoverUploadUrlSchema = z.object({
+  contentType: z.enum(IMAGE_CONTENT_TYPES),
 });

@@ -7,10 +7,18 @@ import {
   CreateBookResult,
   UpdateBookResult,
 } from '../../../shared/types/book.types';
-import { createBookUseCase, updateBookUseCase } from '../../../shared/usecases';
+import {
+  createBookUseCase,
+  mintBookCoverUploadUrlUseCase,
+  MintBookCoverUploadUrlResult,
+  mintBookPdfUploadUrlUseCase,
+  MintBookPdfUploadUrlResult,
+  updateBookUseCase,
+} from '../../../shared/usecases';
 import { toBookResponse } from '../../../shared/usecases/to-book-response.usecase';
 import {
   batchBooksSchema,
+  bookCoverUploadUrlSchema,
   bookIdParamSchema,
   createBookSchema,
   updateBookSchema,
@@ -91,6 +99,35 @@ export const putBook = async (req: Request, res: Response): Promise<Response> =>
   if (!result.ok) return res.status(500).json({ error: 'InternalServerError' });
   const body: BookResponse = await toBookResponse(result.book);
   return res.status(200).json(body);
+};
+
+export const postBookCoverUploadUrl = async (req: Request, res: Response): Promise<Response> => {
+  const paramsParsed: ReturnType<typeof bookIdParamSchema.safeParse> = bookIdParamSchema.safeParse(req.params);
+  if (!paramsParsed.success) return badRequest(res, paramsParsed.error);
+  const bodyParsed: ReturnType<typeof bookCoverUploadUrlSchema.safeParse> = bookCoverUploadUrlSchema.safeParse(req.body);
+  if (!bodyParsed.success) return badRequest(res, bodyParsed.error);
+  const result: MintBookCoverUploadUrlResult = await mintBookCoverUploadUrlUseCase(
+    paramsParsed.data.id,
+    bodyParsed.data,
+  );
+  if (!result.ok) return res.status(404).json({ error: 'NotFound' });
+  return res.status(200).json({
+    url: result.url,
+    key: result.key,
+    expiresInSeconds: result.expiresInSeconds,
+  });
+};
+
+export const postBookPdfUploadUrl = async (req: Request, res: Response): Promise<Response> => {
+  const paramsParsed: ReturnType<typeof bookIdParamSchema.safeParse> = bookIdParamSchema.safeParse(req.params);
+  if (!paramsParsed.success) return badRequest(res, paramsParsed.error);
+  const result: MintBookPdfUploadUrlResult = await mintBookPdfUploadUrlUseCase(paramsParsed.data.id);
+  if (!result.ok) return res.status(404).json({ error: 'NotFound' });
+  return res.status(200).json({
+    url: result.url,
+    key: result.key,
+    expiresInSeconds: result.expiresInSeconds,
+  });
 };
 
 export const deleteBookById = async (req: Request, res: Response): Promise<Response> => {

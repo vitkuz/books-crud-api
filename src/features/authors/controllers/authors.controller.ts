@@ -2,9 +2,14 @@ import { Request, Response } from 'express';
 import { ZodError } from 'zod';
 import { authorsService } from '../../../shared/services/authors.service';
 import { Author, DeleteAuthorResult } from '../../../shared/types/author.types';
-import { deleteAuthorUseCase } from '../../../shared/usecases';
+import {
+  deleteAuthorUseCase,
+  mintAuthorPortraitUploadUrlUseCase,
+  MintAuthorPortraitUploadUrlResult,
+} from '../../../shared/usecases';
 import {
   authorIdParamSchema,
+  authorPortraitUploadUrlSchema,
   batchAuthorsSchema,
   createAuthorSchema,
   updateAuthorSchema,
@@ -51,6 +56,23 @@ export const putAuthor = async (req: Request, res: Response): Promise<Response> 
   const updated: Author | undefined = await authorsService.update(paramsParsed.data.id, payload);
   if (!updated) return res.status(404).json({ error: 'NotFound' });
   return res.status(200).json(updated);
+};
+
+export const postAuthorPortraitUploadUrl = async (req: Request, res: Response): Promise<Response> => {
+  const paramsParsed: ReturnType<typeof authorIdParamSchema.safeParse> = authorIdParamSchema.safeParse(req.params);
+  if (!paramsParsed.success) return badRequest(res, paramsParsed.error);
+  const bodyParsed: ReturnType<typeof authorPortraitUploadUrlSchema.safeParse> = authorPortraitUploadUrlSchema.safeParse(req.body);
+  if (!bodyParsed.success) return badRequest(res, bodyParsed.error);
+  const result: MintAuthorPortraitUploadUrlResult = await mintAuthorPortraitUploadUrlUseCase(
+    paramsParsed.data.id,
+    bodyParsed.data,
+  );
+  if (!result.ok) return res.status(404).json({ error: 'NotFound' });
+  return res.status(200).json({
+    url: result.url,
+    key: result.key,
+    expiresInSeconds: result.expiresInSeconds,
+  });
 };
 
 export const deleteAuthorById = async (req: Request, res: Response): Promise<Response> => {

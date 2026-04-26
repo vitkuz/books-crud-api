@@ -3,6 +3,7 @@ import { Metadata } from './metadata.types';
 export type Author = {
   id: string;
   name: string;
+  portraitKey?: string;
   metadata: Metadata;
 };
 
