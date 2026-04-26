@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { CfnOutput, Duration, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
-import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
+import { CorsHttpMethod, HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { AttributeType, BillingMode, ProjectionType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
@@ -87,6 +87,12 @@ export class ApiStack extends Stack {
       apiName: 'books-api-http-dev',
       description: 'HTTP API fronting the books-crud-api Lambda.',
       defaultIntegration: integration,
+      corsPreflight: {
+        allowOrigins: ['*'],
+        allowMethods: [CorsHttpMethod.ANY],
+        allowHeaders: ['Authorization', 'Content-Type', 'x-request-id'],
+        maxAge: Duration.hours(1),
+      },
     });
 
     httpApi.addRoutes({
