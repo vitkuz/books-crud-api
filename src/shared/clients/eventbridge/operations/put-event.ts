@@ -1,4 +1,8 @@
-import { PutEventsCommand, PutEventsResultEntry } from '@aws-sdk/client-eventbridge';
+import {
+  PutEventsCommand,
+  PutEventsCommandOutput,
+  PutEventsResultEntry,
+} from '@aws-sdk/client-eventbridge';
 import { EventBridgeAdapterClient, EventBridgeAdapterSettings } from '../types';
 
 export const putEventFactory = (
@@ -22,7 +26,7 @@ export const putEventFactory = (
       ],
     });
 
-    const response = await settings.client.send(command);
+    const response: PutEventsCommandOutput = await settings.client.send(command);
     const entry: PutEventsResultEntry | undefined = response.Entries?.[0];
 
     if ((response.FailedEntryCount ?? 0) > 0 || !entry?.EventId) {

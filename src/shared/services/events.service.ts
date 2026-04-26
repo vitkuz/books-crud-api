@@ -19,7 +19,7 @@ export type EventsService = {
 
 export const eventsService: EventsService = {
   publishEvent: async (input) => {
-    const source: string = input.source ?? DEFAULT_SOURCE;
+    const source = input.source ?? DEFAULT_SOURCE;
     logger.debug('events.service.publishEvent start', {
       source,
       detailType: input.detailType,
