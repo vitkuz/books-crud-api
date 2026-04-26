@@ -29,6 +29,10 @@ export const buildSetExpression = (
   let i = 0;
   for (const [field, value] of Object.entries(patch)) {
     if (KEY_FIELDS.has(field)) continue;
+    // Skip undefined: DynamoDB rejects an UpdateExpression that references
+    // a value name not present in ExpressionAttributeValues, and the SDK
+    // strips undefined from that map. Use REMOVE explicitly to clear a field.
+    if (value === undefined) continue;
     const nameToken = `#k${i}`;
     const valueToken = `:v${i}`;
     names[nameToken] = field;

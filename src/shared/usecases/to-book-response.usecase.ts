@@ -37,6 +37,8 @@ export const toBookResponse = async (book: Book): Promise<BookResponse> => {
     year: book.year,
     pdfKey: book.pdfKey,
     coverKey: book.coverKey,
+    createdAt: book.createdAt,
+    updatedAt: book.updatedAt,
     metadata: book.metadata,
   };
 };

@@ -38,6 +38,8 @@ const fromItem = (item: DynamoItem): Book => {
     year: b.year,
     pdfKey: b.pdfKey,
     coverKey: b.coverKey,
+    createdAt: b.createdAt,
+    updatedAt: b.updatedAt,
     metadata: b.metadata,
   };
 };
@@ -83,6 +85,8 @@ export const booksService: BooksService = {
       year: input.year,
       pdfKey: input.pdfKey,
       coverKey: input.coverKey,
+      createdAt: now,
+      updatedAt: now,
       metadata: { createdAt: now, updatedAt: now },
     };
     logger.debug('books.service.create start', { id: book.id });
@@ -168,6 +172,8 @@ export const booksService: BooksService = {
       year: patch.year !== undefined ? patch.year : existing.year,
       pdfKey: patch.pdfKey !== undefined ? patch.pdfKey : existing.pdfKey,
       coverKey: patch.coverKey !== undefined ? patch.coverKey : existing.coverKey,
+      createdAt: existing.createdAt,
+      updatedAt: now,
       metadata: {
         createdAt: existing.metadata.createdAt,
         updatedAt: now,

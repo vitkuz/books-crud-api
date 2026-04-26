@@ -7,6 +7,8 @@ export type UserResponse = {
   id: string;
   email: string;
   name?: string;
+  createdAt: string;
+  updatedAt: string;
   metadata: Metadata;
 };
 
@@ -14,12 +16,16 @@ export type Author = {
   id: string;
   name: string;
   portraitKey?: string;
+  createdAt: string;
+  updatedAt: string;
   metadata: Metadata;
 };
 
 export type Category = {
   id: string;
   name: string;
+  createdAt: string;
+  updatedAt: string;
   metadata: Metadata;
 };
 
@@ -31,6 +37,8 @@ export type Book = {
   year: number;
   pdfKey?: string;
   coverKey?: string;
+  createdAt: string;
+  updatedAt: string;
   metadata: Metadata;
 };
 
@@ -42,6 +50,8 @@ export type BookResponse = {
   year: number;
   pdfKey?: string;
   coverKey?: string;
+  createdAt: string;
+  updatedAt: string;
   metadata: Metadata;
 };
 

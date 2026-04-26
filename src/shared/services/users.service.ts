@@ -38,6 +38,8 @@ const fromItem = (item: DynamoItem): User => {
     email: u.email,
     passwordHash: u.passwordHash,
     name: u.name,
+    createdAt: u.createdAt,
+    updatedAt: u.updatedAt,
     metadata: u.metadata,
   };
 };
@@ -79,6 +81,8 @@ export const usersService: UsersService = {
         email: input.email,
         passwordHash: hashPassword(input.password),
         name: input.name,
+        createdAt: now,
+        updatedAt: now,
         metadata: { createdAt: now, updatedAt: now },
       };
       await dynamoDb.createOne(toItem(user));
@@ -154,6 +158,8 @@ export const usersService: UsersService = {
         passwordHash:
           patch.password !== undefined ? hashPassword(patch.password) : existing.passwordHash,
         name: patch.name !== undefined ? patch.name : existing.name,
+        createdAt: existing.createdAt,
+        updatedAt: now,
         metadata: {
           createdAt: existing.metadata.createdAt,
           updatedAt: now,
