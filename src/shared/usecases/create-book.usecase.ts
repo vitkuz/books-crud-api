@@ -30,13 +30,12 @@ export const createBookUseCase = async (
     return { ok: false, error: 'INVALID_CATEGORY_IDS', missingIds };
   }
 
-  const book: Book = booksService.buildBook({
+  const book: Book = await booksService.create({
     title: input.title,
     authorId: input.authorId,
     categoryIds,
     year: input.year,
   });
-  await booksService.insert(book);
   logger.debug('create-book.usecase success', { id: book.id });
   return { ok: true, book };
 };

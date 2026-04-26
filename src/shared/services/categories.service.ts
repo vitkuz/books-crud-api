@@ -74,8 +74,9 @@ export const categoriesService: CategoriesService = {
 
   findManyByIds: async (ids) => {
     logger.debug('categories.service.findManyByIds start', { count: ids.length });
-    if (ids.length === 0) return [];
-    const keys: DynamoKey[] = ids.map((id: string): DynamoKey => ({
+    const uniqueIds: string[] = Array.from(new Set(ids));
+    if (uniqueIds.length === 0) return [];
+    const keys: DynamoKey[] = uniqueIds.map((id: string): DynamoKey => ({
       pk: categoryPk(id),
       sk: SK_VALUE,
     }));

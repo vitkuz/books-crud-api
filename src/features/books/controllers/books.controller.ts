@@ -8,7 +8,7 @@ import {
   UpdateBookResult,
 } from '../../../shared/types/book.types';
 import { createBookUseCase, updateBookUseCase } from '../../../shared/usecases';
-import { toBookResponse } from '../../../shared/utils/book-mapper';
+import { toBookResponse } from '../../../shared/usecases/to-book-response.usecase';
 import {
   batchBooksSchema,
   bookIdParamSchema,
@@ -53,7 +53,7 @@ export const getBooks = async (_req: Request, res: Response): Promise<Response> 
 };
 
 export const getBooksCount = async (_req: Request, res: Response): Promise<Response> => {
-  const count: number = await booksService.count();
+  const count = await booksService.count();
   return res.status(200).json({ count });
 };
 
@@ -96,7 +96,7 @@ export const putBook = async (req: Request, res: Response): Promise<Response> =>
 export const deleteBookById = async (req: Request, res: Response): Promise<Response> => {
   const parsed: ReturnType<typeof bookIdParamSchema.safeParse> = bookIdParamSchema.safeParse(req.params);
   if (!parsed.success) return badRequest(res, parsed.error);
-  const removed: boolean = await booksService.delete(parsed.data.id);
+  const removed = await booksService.delete(parsed.data.id);
   if (!removed) return res.status(404).json({ error: 'NotFound' });
   return res.status(204).send();
 };

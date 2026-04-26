@@ -53,8 +53,7 @@ export type UpdateBookInput = {
 };
 
 export type BooksService = {
-  insert: (book: Book) => Promise<Book>;
-  insertMany: (books: Book[]) => Promise<Book[]>;
+  create: (input: CreateBookInput) => Promise<Book>;
   findById: (id: string) => Promise<Book | undefined>;
   findManyByIds: (ids: string[]) => Promise<Book[]>;
   findAll: () => Promise<Book[]>;
@@ -63,35 +62,23 @@ export type BooksService = {
   update: (id: string, patch: UpdateBookInput) => Promise<Book | undefined>;
   delete: (id: string) => Promise<boolean>;
   count: () => Promise<number>;
-  buildBook: (input: CreateBookInput) => Book;
-};
-
-const buildBook = (input: CreateBookInput): Book => {
-  const now: string = new Date().toISOString();
-  return {
-    id: uuidv4(),
-    title: input.title,
-    authorId: input.authorId,
-    categoryIds: input.categoryIds,
-    year: input.year,
-    metadata: { createdAt: now, updatedAt: now },
-  };
 };
 
 export const booksService: BooksService = {
-  insert: async (book) => {
-    logger.debug('books.service.insert start', { id: book.id });
+  create: async (input) => {
+    const now = new Date().toISOString();
+    const book: Book = {
+      id: uuidv4(),
+      title: input.title,
+      authorId: input.authorId,
+      categoryIds: input.categoryIds,
+      year: input.year,
+      metadata: { createdAt: now, updatedAt: now },
+    };
+    logger.debug('books.service.create start', { id: book.id });
     await dynamoDb.createOne(toItem(book));
-    logger.debug('books.service.insert success', { id: book.id });
+    logger.debug('books.service.create success', { id: book.id });
     return book;
-  },
-
-  insertMany: async (books) => {
-    logger.debug('books.service.insertMany start', { count: books.length });
-    if (books.length === 0) return [];
-    await dynamoDb.createMany(books.map(toItem));
-    logger.debug('books.service.insertMany success', { count: books.length });
-    return books;
   },
 
   findById: async (id) => {
@@ -207,6 +194,4 @@ export const booksService: BooksService = {
     logger.debug('books.service.count success', { count: all.length });
     return all.length;
   },
-
-  buildBook,
 };
