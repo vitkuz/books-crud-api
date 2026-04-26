@@ -6,6 +6,7 @@ import { AttributeType, BillingMode, ProjectionType, Table } from 'aws-cdk-lib/a
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
 export class ApiStack extends Stack {
@@ -47,6 +48,15 @@ export class ApiStack extends Stack {
       projectionType: ProjectionType.ALL,
     });
 
+    const filesBucket: Bucket = new Bucket(this, 'FilesBucket', {
+      bucketName: `books-api-files-${this.account}-dev`,
+      removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+      encryption: BucketEncryption.S3_MANAGED,
+      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+      enforceSSL: true,
+    });
+
     const projectRoot: string = path.resolve(__dirname, '..', '..');
     const entry: string = path.join(projectRoot, 'src', 'lambda', 'handler.ts');
     const depsLockFilePath: string = path.join(projectRoot, 'package-lock.json');
@@ -66,6 +76,7 @@ export class ApiStack extends Stack {
         NODE_ENV: 'production',
         PORT: '3000',
         DYNAMODB_TABLE_NAME: dataTable.tableName,
+        S3_BUCKET_NAME: filesBucket.bucketName,
       },
       bundling: {
         minify: true,
@@ -77,6 +88,7 @@ export class ApiStack extends Stack {
     });
 
     dataTable.grantReadWriteData(apiFunction);
+    filesBucket.grantReadWrite(apiFunction);
 
     const integration: HttpLambdaIntegration = new HttpLambdaIntegration(
       'ApiIntegration',
@@ -119,6 +131,11 @@ export class ApiStack extends Stack {
     new CfnOutput(this, 'DataTableName', {
       value: dataTable.tableName,
       description: 'DynamoDB single-table name',
+    });
+
+    new CfnOutput(this, 'FilesBucketName', {
+      value: filesBucket.bucketName,
+      description: 'S3 bucket for general file storage',
     });
   }
 }
