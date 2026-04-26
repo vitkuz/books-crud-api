@@ -5,6 +5,8 @@ export type User = {
   email: string;
   passwordHash: string;
   name?: string;
+  createdAt: string;
+  updatedAt: string;
   metadata: Metadata;
 };
 
@@ -12,10 +14,12 @@ export type UserResponse = {
   id: string;
   email: string;
   name?: string;
+  createdAt: string;
+  updatedAt: string;
   metadata: Metadata;
 };
 
-export type UserPatch = Partial<Omit<User, 'id' | 'metadata'>>;
+export type UserPatch = Partial<Omit<User, 'id' | 'metadata' | 'createdAt' | 'updatedAt'>>;
 
 export type CreateUserResult =
   | { ok: true; user: User }

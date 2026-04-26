@@ -50,8 +50,10 @@ HTTP layer (per feature)
   discriminator (`PROFILE`, `META`, `DATA`, ...).
 - The store layer copies `metadata.createdAt` / `metadata.updatedAt` to
   top-level `createdAt` / `updatedAt` so GSI2 (sort by updatedAt) and GSI3
-  (sort by createdAt) work. API response shapes keep the nested `metadata`
-  block.
+  (sort by createdAt) work. API response shapes expose **both**:
+  `createdAt` / `updatedAt` at the entity root **and** the nested
+  `metadata` block. Consumers can use either; new code should prefer the
+  root-level fields.
 
 ## Async controller error handling
 

@@ -30,6 +30,8 @@ const fromItem = (item: DynamoItem): Author => {
     id: a.id,
     name: a.name,
     portraitKey: a.portraitKey,
+    createdAt: a.createdAt,
+    updatedAt: a.updatedAt,
     metadata: a.metadata,
   };
 };
@@ -54,6 +56,8 @@ export const authorsService: AuthorsService = {
       id: uuidv4(),
       name: input.name,
       portraitKey: input.portraitKey,
+      createdAt: now,
+      updatedAt: now,
       metadata: { createdAt: now, updatedAt: now },
     };
     await dynamoDb.createOne(toItem(author));
@@ -107,6 +111,8 @@ export const authorsService: AuthorsService = {
       id: existing.id,
       name: patch.name !== undefined ? patch.name : existing.name,
       portraitKey: patch.portraitKey !== undefined ? patch.portraitKey : existing.portraitKey,
+      createdAt: existing.createdAt,
+      updatedAt: now,
       metadata: {
         createdAt: existing.metadata.createdAt,
         updatedAt: now,

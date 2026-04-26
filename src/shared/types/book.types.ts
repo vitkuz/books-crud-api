@@ -10,6 +10,8 @@ export type Book = {
   year: number;
   pdfKey?: string;
   coverKey?: string;
+  createdAt: string;
+  updatedAt: string;
   metadata: Metadata;
 };
 
@@ -21,10 +23,12 @@ export type BookResponse = {
   year: number;
   pdfKey?: string;
   coverKey?: string;
+  createdAt: string;
+  updatedAt: string;
   metadata: Metadata;
 };
 
-export type BookPatch = Partial<Omit<Book, 'id' | 'metadata'>>;
+export type BookPatch = Partial<Omit<Book, 'id' | 'metadata' | 'createdAt' | 'updatedAt'>>;
 
 export type CreateBookResult =
   | { ok: true; book: Book }

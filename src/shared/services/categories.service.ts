@@ -28,6 +28,8 @@ const fromItem = (item: DynamoItem): Category => {
   return {
     id: c.id,
     name: c.name,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
     metadata: c.metadata,
   };
 };
@@ -51,6 +53,8 @@ export const categoriesService: CategoriesService = {
     const category: Category = {
       id: uuidv4(),
       name: input.name,
+      createdAt: now,
+      updatedAt: now,
       metadata: { createdAt: now, updatedAt: now },
     };
     await dynamoDb.createOne(toItem(category));
@@ -103,6 +107,8 @@ export const categoriesService: CategoriesService = {
     const next: Category = {
       id: existing.id,
       name: patch.name !== undefined ? patch.name : existing.name,
+      createdAt: existing.createdAt,
+      updatedAt: now,
       metadata: {
         createdAt: existing.metadata.createdAt,
         updatedAt: now,
