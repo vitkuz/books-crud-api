@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/Button';
 import { S3Image } from '@/shared/ui/S3Image';
 import { useOpenModalLink } from '@/app/modals/modalUrlSync';
@@ -52,7 +53,9 @@ export const AuthorsListPage = (): JSX.Element => {
                     <S3Image s3Key={a.portraitKey} alt="" width={40} height={40} />
                   </td>
                 )}
-                <td>{a.name}</td>
+                <td>
+                  <Link to={`/authors/${a.id}`}>{a.name}</Link>
+                </td>
                 <td className="mono" style={{ color: 'var(--color-muted)' }}>
                   {new Date(a.metadata.createdAt).toLocaleDateString()}
                 </td>
