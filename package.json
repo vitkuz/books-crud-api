@@ -12,7 +12,9 @@
     "format:check": "prettier --check .",
     "test:integration:local": "ts-node tests/integration/run-local.ts",
     "test:integration:deploy": "ts-node tests/integration/run-deploy.ts",
-    "test:integration:dynamodb": "ts-node tests/integration/run-dynamodb.ts"
+    "test:integration:dynamodb": "ts-node tests/integration/run-dynamodb.ts",
+    "seed:local": "ts-node tests/integration/seed/run-local.ts",
+    "seed:deploy": "ts-node tests/integration/seed/run-deploy.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1037.0",
