@@ -7,7 +7,9 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage';
 import { BooksListPage } from '@/features/books/pages/BooksListPage';
 import { BookDetailPage } from '@/features/books/pages/BookDetailPage';
 import { AuthorsListPage } from '@/features/authors/pages/AuthorsListPage';
+import { AuthorDetailPage } from '@/features/authors/pages/AuthorDetailPage';
 import { CategoriesListPage } from '@/features/categories/pages/CategoriesListPage';
+import { CategoryDetailPage } from '@/features/categories/pages/CategoryDetailPage';
 
 const ShellLayout = (): JSX.Element => {
   useModalUrlSync();
@@ -29,7 +31,9 @@ export const router = createBrowserRouter([
       { path: '/books', element: <BooksListPage /> },
       { path: '/books/:id', element: <BookDetailPage /> },
       { path: '/authors', element: <AuthorsListPage /> },
+      { path: '/authors/:id', element: <AuthorDetailPage /> },
       { path: '/categories', element: <CategoriesListPage /> },
+      { path: '/categories/:id', element: <CategoryDetailPage /> },
       { path: '*', element: <div className="empty">Not found.</div> },
     ],
   },

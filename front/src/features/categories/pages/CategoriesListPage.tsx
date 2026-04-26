@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Button } from '@/shared/ui/Button';
 import { useOpenModalLink } from '@/app/modals/modalUrlSync';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -45,7 +46,9 @@ export const CategoriesListPage = (): JSX.Element => {
           <tbody>
             {categoriesQuery.data.map((c: Category) => (
               <tr key={c.id}>
-                <td>{c.name}</td>
+                <td>
+                  <Link to={`/categories/${c.id}`}>{c.name}</Link>
+                </td>
                 <td className="mono" style={{ color: 'var(--color-muted)' }}>
                   {new Date(c.metadata.createdAt).toLocaleDateString()}
                 </td>
