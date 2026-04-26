@@ -62,11 +62,17 @@ export type UpdateBookInput = {
   coverKey?: string;
 };
 
+export type BookFilters = {
+  authorIds?: string[];
+  categoryIds?: string[];
+};
+
 export type BooksService = {
   create: (input: CreateBookInput) => Promise<Book>;
   findById: (id: string) => Promise<Book | undefined>;
   findManyByIds: (ids: string[]) => Promise<Book[]>;
   findAll: () => Promise<Book[]>;
+  findManyByFilters: (filters: BookFilters) => Promise<Book[]>;
   findByAuthorId: (authorId: string) => Promise<Book[]>;
   findByCategoryId: (categoryId: string) => Promise<Book[]>;
   update: (id: string, patch: UpdateBookInput) => Promise<Book | undefined>;
@@ -127,6 +133,31 @@ export const booksService: BooksService = {
     const items: DynamoItem[] = await dynamoDb.listAll(SK_VALUE);
     logger.debug('books.service.findAll success', { count: items.length });
     return items.map(fromItem);
+  },
+
+  findManyByFilters: async (filters) => {
+    logger.debug('books.service.findManyByFilters start', {
+      authorIds: filters.authorIds?.length ?? 0,
+      categoryIds: filters.categoryIds?.length ?? 0,
+    });
+    const all: Book[] = await booksService.findAll();
+    const authorSet: Set<string> | undefined =
+      filters.authorIds && filters.authorIds.length > 0
+        ? new Set(filters.authorIds)
+        : undefined;
+    const categorySet: Set<string> | undefined =
+      filters.categoryIds && filters.categoryIds.length > 0
+        ? new Set(filters.categoryIds)
+        : undefined;
+    const matched: Book[] = all.filter((b: Book): boolean => {
+      if (authorSet && !authorSet.has(b.authorId)) return false;
+      if (categorySet && !b.categoryIds.some((cid: string): boolean => categorySet.has(cid))) {
+        return false;
+      }
+      return true;
+    });
+    logger.debug('books.service.findManyByFilters success', { count: matched.length });
+    return matched;
   },
 
   findByAuthorId: async (authorId) => {

@@ -4,6 +4,7 @@ import { Card } from '@/shared/ui/Card';
 import { S3Image } from '@/shared/ui/S3Image';
 import { useOpenModalLink } from '@/app/modals/modalUrlSync';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { BooksByFilter } from '@/features/books/components/BooksByFilter';
 import { Author } from '@/shared/types/api.types';
 import { useAuthor } from '../queries/authors.queries';
 
@@ -68,6 +69,16 @@ export const AuthorDetailPage = (): JSX.Element => {
           </dd>
         </dl>
       </Card>
+
+      {id !== undefined && (
+        <div style={{ marginTop: 16 }}>
+          <BooksByFilter
+            title="Books by this author"
+            filters={{ authorIds: [id] }}
+            emptyMessage="No books by this author yet."
+          />
+        </div>
+      )}
     </>
   );
 };

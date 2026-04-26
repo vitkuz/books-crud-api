@@ -4,7 +4,8 @@ export const qk = {
   },
   books: {
     all: ['books'] as const,
-    list: () => ['books', 'list'] as const,
+    list: (filters?: { authorIds?: string[]; categoryIds?: string[] }) =>
+      ['books', 'list', filters ?? {}] as const,
     detail: (id: string) => ['books', 'detail', id] as const,
     count: () => ['books', 'count'] as const,
   },

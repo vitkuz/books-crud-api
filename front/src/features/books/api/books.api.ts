@@ -20,8 +20,25 @@ export type UpdateBookInput = {
   coverKey?: string;
 };
 
+export type BooksFilter = {
+  authorIds?: string[];
+  categoryIds?: string[];
+};
+
+const buildBooksQueryString = (filters?: BooksFilter): string => {
+  const parts: string[] = [];
+  if (filters?.authorIds && filters.authorIds.length > 0) {
+    parts.push(`authorIds=${encodeURIComponent(filters.authorIds.join(','))}`);
+  }
+  if (filters?.categoryIds && filters.categoryIds.length > 0) {
+    parts.push(`categoryIds=${encodeURIComponent(filters.categoryIds.join(','))}`);
+  }
+  return parts.length === 0 ? '' : `?${parts.join('&')}`;
+};
+
 export const booksApi = {
-  list: (): Promise<BookResponse[]> => fetchJson<BookResponse[]>('/books'),
+  list: (filters?: BooksFilter): Promise<BookResponse[]> =>
+    fetchJson<BookResponse[]>(`/books${buildBooksQueryString(filters)}`),
   count: (): Promise<{ count: number }> => fetchJson<{ count: number }>('/books/count'),
   get: (id: string): Promise<BookResponse> => fetchJson<BookResponse>(`/books/${id}`),
   create: (input: CreateBookInput): Promise<BookResponse> =>

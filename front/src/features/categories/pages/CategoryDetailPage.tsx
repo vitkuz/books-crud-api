@@ -3,6 +3,7 @@ import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { useOpenModalLink } from '@/app/modals/modalUrlSync';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { BooksByFilter } from '@/features/books/components/BooksByFilter';
 import { Category } from '@/shared/types/api.types';
 import { useCategory } from '../queries/categories.queries';
 
@@ -62,6 +63,16 @@ export const CategoryDetailPage = (): JSX.Element => {
           </dd>
         </dl>
       </Card>
+
+      {id !== undefined && (
+        <div style={{ marginTop: 16 }}>
+          <BooksByFilter
+            title="Books in this category"
+            filters={{ categoryIds: [id] }}
+            emptyMessage="No books in this category yet."
+          />
+        </div>
+      )}
     </>
   );
 };
