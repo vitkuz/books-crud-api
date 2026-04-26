@@ -4,6 +4,7 @@ import { authorsRouter } from './features/authors';
 import { authRouter, initRouter } from './features/auth';
 import { booksRouter } from './features/books';
 import { categoriesRouter } from './features/categories';
+import { filesRouter } from './features/files';
 import { usersRouter } from './features/users';
 
 export const createApp = (): Application => {
@@ -24,6 +25,7 @@ export const createApp = (): Application => {
   app.use('/users', usersRouter);
   app.use('/auth', authRouter);
   app.use('/init', initRouter);
+  app.use('/files', filesRouter);
 
   app.use((_req: Request, res: Response): Response => res.status(404).json({ error: 'NotFound' }));
 

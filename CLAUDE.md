@@ -14,10 +14,10 @@ style preferences that aren't listed here.
 ```
 HTTP layer (per feature)
   routes/   ──►  controllers/   ──►   shared/usecases/    ──►   shared/services/<entity>.service.ts
-                                       (compose 2+ services)     (entity CRUD wrappers)
+                                       (always)                  (entity CRUD wrappers)
                                                                    │
                                                                    ▼
-                                                    shared/clients/dynamo-db/  (instance + ops)
+                                                    shared/clients/{dynamo-db,s3}/  (instance + ops)
 ```
 
 - Feature-first folders for the **HTTP layer only**: `src/features/<feature>/`
@@ -28,16 +28,20 @@ HTTP layer (per feature)
   `findAll`, etc.). Each service is exported as a module-level singleton
   built once at module load against the shared `DynamoDbClient` from
   `src/shared/clients/dynamo-db/instance.ts`.
-- **Use cases** live in `src/shared/usecases/<action>.usecase.ts`. They
-  compose **two or more** services. A controller calling a single service
-  directly is fine — only reach for a usecase when there's real composition.
+- **Use cases** live in `src/shared/usecases/<action>.usecase.ts` and are
+  the **only path** from a controller to the data layer. Controllers
+  never import a service directly — they always go through a usecase,
+  even when it's a single-line passthrough. The passthrough cost is
+  trivial; the upside is that adding a second service later (cross-cutting
+  validation, audit logging, fan-out) is a local edit instead of a
+  controller refactor.
 - **Entity types** (`User`, `Book`, `Author`, ...) live in `src/shared/types/`
   because services own the persisted shape.
 - **Schemas** (`*.schema.ts`) are HTTP-payload validation and stay per
   feature.
 - Routes only bind paths to controllers; no logic.
-- Controllers parse input (Zod), call usecases or services, shape the HTTP
-  response. No business rules.
+- Controllers parse input (Zod), call usecases (never services
+  directly), shape the HTTP response. No business rules.
 
 ### DynamoDB item shape
 
@@ -127,7 +131,9 @@ domain failures (`EMAIL_TAKEN`, `BOOK_NOT_FOUND`, etc.).
 
 - An endpoint without a Zod schema.
 - A service throwing an `Error` where a result union would fit.
-- A controller doing business logic instead of delegating to a service.
+- A controller importing a service directly. Controllers always go
+  through a usecase — even single-line passthroughs.
+- A controller doing business logic instead of delegating to a usecase.
 - Cross-feature import at the `controllers/` or `routes/` level.
 - Missing explicit return type on an exported function.
 - Adding a dependency for something a one-liner could do.
