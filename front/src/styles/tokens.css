@@ -1,0 +1,58 @@
+/*
+ * Library Modern — design tokens.
+ * No hex literals should appear outside this file.
+ */
+
+:root {
+  /* Color */
+  --color-bg: #fbf8f1;
+  --color-surface: #ffffff;
+  --color-text: #2b2724;
+  --color-muted: #6b655b;
+  --color-border: #e8e2d4;
+  --color-accent: #7c1d2c;
+  --color-accent-hover: #5e1521;
+  --color-accent-soft: #f4e8e5;
+  --color-danger: #a3261b;
+  --color-danger-hover: #821e15;
+  --color-success: #3a6b4f;
+  --color-focus-ring: rgba(124, 29, 44, 0.35);
+
+  /* Typography */
+  --font-serif: 'Crimson Pro', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.375rem;
+  --fs-2xl: 1.75rem;
+  --fs-3xl: 2.5rem;
+
+  --lh-tight: 1.2;
+  --lh-base: 1.5;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Shape */
+  --radius: 6px;
+  --radius-lg: 10px;
+
+  /* Elevation */
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  /* Layout */
+  --content-width: 1080px;
+  --header-height: 64px;
+}

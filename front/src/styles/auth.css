@@ -1,0 +1,4 @@
+.auth-page {
+  max-width: 420px;
+  margin: var(--space-12) auto;
+}
