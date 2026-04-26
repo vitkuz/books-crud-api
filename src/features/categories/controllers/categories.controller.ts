@@ -1,74 +1,62 @@
 import { Request, Response } from 'express';
 import { ZodError } from 'zod';
-import * as categoriesService from '../services';
+import { categoriesService } from '../../../shared/services/categories.service';
+import { Category, DeleteCategoryResult } from '../../../shared/types/category.types';
+import { deleteCategoryUseCase } from '../../../shared/usecases';
 import {
   batchCategoriesSchema,
   categoryIdParamSchema,
   createCategorySchema,
   updateCategorySchema,
 } from '../categories.schema';
-import {
-  Category,
-  CreateCategoryPayload,
-  DeleteCategoryResult,
-  UpdateCategoryPayload,
-} from '../categories.types';
+import { CreateCategoryPayload, UpdateCategoryPayload } from '../categories.types';
 
 const badRequest = (res: Response, err: ZodError): Response =>
   res.status(400).json({ error: 'ValidationError', issues: err.issues });
 
-export const postCategory = (req: Request, res: Response): Response => {
-  const parsed: ReturnType<typeof createCategorySchema.safeParse> =
-    createCategorySchema.safeParse(req.body);
+export const postCategory = async (req: Request, res: Response): Promise<Response> => {
+  const parsed: ReturnType<typeof createCategorySchema.safeParse> = createCategorySchema.safeParse(req.body);
   if (!parsed.success) return badRequest(res, parsed.error);
   const payload: CreateCategoryPayload = parsed.data;
-  const category: Category = categoriesService.createCategory(payload);
+  const category: Category = await categoriesService.create(payload);
   return res.status(201).json(category);
 };
 
-export const getCategories = (_req: Request, res: Response): Response => {
-  const categories: Category[] = categoriesService.listCategories();
+export const getCategories = async (_req: Request, res: Response): Promise<Response> => {
+  const categories: Category[] = await categoriesService.findAll();
   return res.status(200).json(categories);
 };
 
-export const postCategoriesBatch = (req: Request, res: Response): Response => {
-  const parsed: ReturnType<typeof batchCategoriesSchema.safeParse> =
-    batchCategoriesSchema.safeParse(req.body);
+export const postCategoriesBatch = async (req: Request, res: Response): Promise<Response> => {
+  const parsed: ReturnType<typeof batchCategoriesSchema.safeParse> = batchCategoriesSchema.safeParse(req.body);
   if (!parsed.success) return badRequest(res, parsed.error);
-  const categories: Category[] = categoriesService.batchCategories(parsed.data.ids);
+  const categories: Category[] = await categoriesService.findManyByIds(parsed.data.ids);
   return res.status(200).json(categories);
 };
 
-export const getCategoryById = (req: Request, res: Response): Response => {
-  const parsed: ReturnType<typeof categoryIdParamSchema.safeParse> =
-    categoryIdParamSchema.safeParse(req.params);
+export const getCategoryById = async (req: Request, res: Response): Promise<Response> => {
+  const parsed: ReturnType<typeof categoryIdParamSchema.safeParse> = categoryIdParamSchema.safeParse(req.params);
   if (!parsed.success) return badRequest(res, parsed.error);
-  const category: Category | undefined = categoriesService.getCategory(parsed.data.id);
+  const category: Category | undefined = await categoriesService.findById(parsed.data.id);
   if (!category) return res.status(404).json({ error: 'NotFound' });
   return res.status(200).json(category);
 };
 
-export const putCategory = (req: Request, res: Response): Response => {
-  const paramsParsed: ReturnType<typeof categoryIdParamSchema.safeParse> =
-    categoryIdParamSchema.safeParse(req.params);
+export const putCategory = async (req: Request, res: Response): Promise<Response> => {
+  const paramsParsed: ReturnType<typeof categoryIdParamSchema.safeParse> = categoryIdParamSchema.safeParse(req.params);
   if (!paramsParsed.success) return badRequest(res, paramsParsed.error);
-  const bodyParsed: ReturnType<typeof updateCategorySchema.safeParse> =
-    updateCategorySchema.safeParse(req.body);
+  const bodyParsed: ReturnType<typeof updateCategorySchema.safeParse> = updateCategorySchema.safeParse(req.body);
   if (!bodyParsed.success) return badRequest(res, bodyParsed.error);
   const payload: UpdateCategoryPayload = bodyParsed.data;
-  const updated: Category | undefined = categoriesService.updateCategory(
-    paramsParsed.data.id,
-    payload,
-  );
+  const updated: Category | undefined = await categoriesService.update(paramsParsed.data.id, payload);
   if (!updated) return res.status(404).json({ error: 'NotFound' });
   return res.status(200).json(updated);
 };
 
-export const deleteCategoryById = (req: Request, res: Response): Response => {
-  const parsed: ReturnType<typeof categoryIdParamSchema.safeParse> =
-    categoryIdParamSchema.safeParse(req.params);
+export const deleteCategoryById = async (req: Request, res: Response): Promise<Response> => {
+  const parsed: ReturnType<typeof categoryIdParamSchema.safeParse> = categoryIdParamSchema.safeParse(req.params);
   if (!parsed.success) return badRequest(res, parsed.error);
-  const result: DeleteCategoryResult = categoriesService.deleteCategory(parsed.data.id);
+  const result: DeleteCategoryResult = await deleteCategoryUseCase(parsed.data.id);
   if (!result.ok && result.error === 'CATEGORY_NOT_FOUND') {
     return res.status(404).json({ error: 'NotFound' });
   }

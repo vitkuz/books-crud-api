@@ -1,15 +1,15 @@
 # Project conventions (enforced in code review)
 
 A minimal CRUD API in TypeScript + Express. Persistence is a single DynamoDB
-table reached through a shared client (`src/shared/clients/dynamo-db/`) — but
-a migration off in-memory `Map`s is in flight. See "Migration in flight"
-below for which entities have moved.
+table reached through a shared client (`src/shared/clients/dynamo-db/`).
+All five entities (users, sessions, books, authors, categories) are backed
+by `shared/services/<entity>.service.ts` — no in-memory `Map`s remain.
 
 This file tells the Claude code reviewer what standards to enforce.
 Inline-comment concrete violations of these rules; don't waste comments on
 style preferences that aren't listed here.
 
-## Architecture (target)
+## Architecture
 
 ```
 HTTP layer (per feature)
@@ -49,24 +49,22 @@ HTTP layer (per feature)
   (sort by createdAt) work. API response shapes keep the nested `metadata`
   block.
 
-## Migration in flight
+## Async controller error handling
 
-The architecture above is the target. Migration is happening one entity per
-PR. Until each entity migrates, the legacy pattern (per-feature
-`*.store.ts` Map + per-feature `services/` folder) coexists with the new
-shared services.
+All async controller handlers are wrapped with `asyncHandler` from
+`src/shared/utils/async-handler.ts` at the route level. This forwards
+rejected promises to Express's error middleware (which returns 500) so
+controllers can `await` services without inlining try/catch. New routes
+should follow this pattern:
 
-| entity | status | notes |
-|---|---|---|
-| sessions | **migrated** | `shared/services/sessions.service.ts` |
-| users | **migrated** | `shared/services/users.service.ts` + auth flows in `shared/usecases/{register,login,init}.usecase.ts` |
-| books | legacy | `features/books/books.store.ts` (Map) |
-| authors | legacy | `features/authors/authors.store.ts` (Map) |
-| categories | legacy | `features/categories/categories.store.ts` (Map) |
+```ts
+booksRouter.post('/', requireAuth, asyncHandler(booksController.postBook));
+```
 
-For legacy entities, the old rules still apply (per-feature `services/`,
-`*.store.ts` Map). Reviewers: do not flag the coexistence of both patterns
-during the migration window.
+Services are free to throw on infrastructure errors (DynamoDB
+exceptions, etc.) — `asyncHandler` will route them to the global error
+handler. Services still return discriminated unions for *expected*
+domain failures (`EMAIL_TAKEN`, `BOOK_NOT_FOUND`, etc.).
 
 ## Coding style
 

@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import { requireAuth } from '../../../shared/middleware/require-auth';
+import { asyncHandler } from '../../../shared/utils/async-handler';
 import * as authorsController from '../controllers';
 
 const authorsRouter: Router = Router();
 
-authorsRouter.get('/', authorsController.getAuthors);
-authorsRouter.post('/', requireAuth, authorsController.postAuthor);
-authorsRouter.post('/batch', requireAuth, authorsController.postAuthorsBatch);
-authorsRouter.get('/:id', authorsController.getAuthorById);
-authorsRouter.put('/:id', requireAuth, authorsController.putAuthor);
-authorsRouter.delete('/:id', requireAuth, authorsController.deleteAuthorById);
+authorsRouter.get('/', asyncHandler(authorsController.getAuthors));
+authorsRouter.post('/', requireAuth, asyncHandler(authorsController.postAuthor));
+authorsRouter.post('/batch', requireAuth, asyncHandler(authorsController.postAuthorsBatch));
+authorsRouter.get('/:id', asyncHandler(authorsController.getAuthorById));
+authorsRouter.put('/:id', requireAuth, asyncHandler(authorsController.putAuthor));
+authorsRouter.delete('/:id', requireAuth, asyncHandler(authorsController.deleteAuthorById));
 
 export default authorsRouter;
