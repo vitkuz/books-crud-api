@@ -12,3 +12,4 @@ export { deleteAuthorUseCase } from './delete-author.usecase';
 export { deleteCategoryUseCase } from './delete-category.usecase';
 export { createPresignedUrlUseCase } from './create-presigned-url.usecase';
 export type { CreatePresignedUrlInput } from './create-presigned-url.usecase';
+export type { PresignedUrlResult } from '../services/files.service';

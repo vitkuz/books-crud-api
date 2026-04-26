@@ -16,7 +16,7 @@ export const createPresignedUrlUseCase = async (
   logger.debug('create-presigned-url.usecase start', { operation: input.operation });
 
   if (input.operation === 'put') {
-    const key: string = generateUploadKey();
+    const key = generateUploadKey();
     const result: PresignedUrlResult = await filesService.createPresignedUrl({
       operation: 'put',
       key,

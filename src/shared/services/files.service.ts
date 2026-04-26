@@ -23,7 +23,7 @@ export const filesService: FilesService = {
       operation: input.operation,
       key: input.key,
     });
-    const url: string = await s3.createPresignedUrl({
+    const url = await s3.createPresignedUrl({
       key: input.key,
       operation: input.operation,
       expiresInSeconds: DEFAULT_EXPIRES_IN_SECONDS,
