@@ -135,7 +135,7 @@ export const booksService: BooksService = {
     return items.map(fromItem);
   },
 
-  findManyByFilters: async (filters) => {
+  findManyByFilters: async (filters: BookFilters): Promise<Book[]> => {
     logger.debug('books.service.findManyByFilters start', {
       authorIds: filters.authorIds?.length ?? 0,
       categoryIds: filters.categoryIds?.length ?? 0,

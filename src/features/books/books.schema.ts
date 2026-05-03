@@ -26,7 +26,7 @@ export const batchBooksSchema = z.object({
 const csvUuidArray = z
   .string()
   .min(1)
-  .transform((s): string[] => s.split(','))
+  .transform((s): string[] => s.split(',').map((token: string): string => token.trim()))
   .pipe(z.array(z.string().uuid()).min(1).max(100));
 
 export const bookFiltersQuerySchema = z.object({

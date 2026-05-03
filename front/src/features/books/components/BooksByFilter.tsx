@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { UseQueryResult } from '@tanstack/react-query';
 import { Card } from '@/shared/ui/Card';
 import { BookResponse } from '@/shared/types/api.types';
 import { BooksFilter } from '../api/books.api';
@@ -15,7 +16,7 @@ export const BooksByFilter = ({
   filters,
   emptyMessage,
 }: BooksByFilterProps): JSX.Element => {
-  const booksQuery = useBooks(filters);
+  const booksQuery: UseQueryResult<BookResponse[]> = useBooks(filters);
 
   return (
     <Card>

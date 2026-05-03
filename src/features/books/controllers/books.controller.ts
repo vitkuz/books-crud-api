@@ -7,7 +7,11 @@ import {
   CreateBookResult,
   UpdateBookResult,
 } from '../../../shared/types/book.types';
-import { createBookUseCase, updateBookUseCase } from '../../../shared/usecases';
+import {
+  createBookUseCase,
+  listBooksUseCase,
+  updateBookUseCase,
+} from '../../../shared/usecases';
 import { toBookResponse } from '../../../shared/usecases/to-book-response.usecase';
 import {
   batchBooksSchema,
@@ -50,11 +54,7 @@ export const postBook = async (req: Request, res: Response): Promise<Response> =
 export const getBooks = async (req: Request, res: Response): Promise<Response> => {
   const parsed: ReturnType<typeof bookFiltersQuerySchema.safeParse> = bookFiltersQuerySchema.safeParse(req.query);
   if (!parsed.success) return badRequest(res, parsed.error);
-  const { authorIds, categoryIds } = parsed.data;
-  const hasFilter: boolean = authorIds !== undefined || categoryIds !== undefined;
-  const books: Book[] = hasFilter
-    ? await booksService.findManyByFilters({ authorIds, categoryIds })
-    : await booksService.findAll();
+  const books: Book[] = await listBooksUseCase(parsed.data);
   const body: BookResponse[] = await Promise.all(books.map(toBookResponse));
   return res.status(200).json(body);
 };
