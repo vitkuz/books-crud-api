@@ -1,10 +1,13 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { qk } from '@/shared/lib/query/keys';
 import { BookResponse } from '@/shared/types/api.types';
-import { booksApi } from '../api/books.api';
+import { booksApi, BooksFilter } from '../api/books.api';
 
-export const useBooks = (): UseQueryResult<BookResponse[]> =>
-  useQuery({ queryKey: qk.books.list(), queryFn: booksApi.list });
+export const useBooks = (filters?: BooksFilter): UseQueryResult<BookResponse[]> =>
+  useQuery({
+    queryKey: qk.books.list(filters),
+    queryFn: (): Promise<BookResponse[]> => booksApi.list(filters),
+  });
 
 export const useBook = (id: string | undefined): UseQueryResult<BookResponse> =>
   useQuery({

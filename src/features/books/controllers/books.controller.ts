@@ -7,10 +7,15 @@ import {
   CreateBookResult,
   UpdateBookResult,
 } from '../../../shared/types/book.types';
-import { createBookUseCase, updateBookUseCase } from '../../../shared/usecases';
+import {
+  createBookUseCase,
+  listBooksUseCase,
+  updateBookUseCase,
+} from '../../../shared/usecases';
 import { toBookResponse } from '../../../shared/usecases/to-book-response.usecase';
 import {
   batchBooksSchema,
+  bookFiltersQuerySchema,
   bookIdParamSchema,
   createBookSchema,
   updateBookSchema,
@@ -46,8 +51,10 @@ export const postBook = async (req: Request, res: Response): Promise<Response> =
   return res.status(201).json(body);
 };
 
-export const getBooks = async (_req: Request, res: Response): Promise<Response> => {
-  const books: Book[] = await booksService.findAll();
+export const getBooks = async (req: Request, res: Response): Promise<Response> => {
+  const parsed: ReturnType<typeof bookFiltersQuerySchema.safeParse> = bookFiltersQuerySchema.safeParse(req.query);
+  if (!parsed.success) return badRequest(res, parsed.error);
+  const books: Book[] = await listBooksUseCase(parsed.data);
   const body: BookResponse[] = await Promise.all(books.map(toBookResponse));
   return res.status(200).json(body);
 };

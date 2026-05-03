@@ -8,6 +8,8 @@ export type { AuthSuccess } from './auth.types';
 
 export { createBookUseCase } from './create-book.usecase';
 export { updateBookUseCase } from './update-book.usecase';
+export { listBooksUseCase } from './list-books.usecase';
+export type { ListBooksInput } from './list-books.usecase';
 export { createAuthorUseCase } from './create-author.usecase';
 export { updateAuthorUseCase } from './update-author.usecase';
 export { deleteAuthorUseCase } from './delete-author.usecase';
