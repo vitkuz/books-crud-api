@@ -47,6 +47,9 @@ jobs:
             --json title,body \
             --jq '"# \(.title)\n\n\(.body // "_no description_")"' \
             > pr-meta.md
+          # Capture the PR's head commit SHA for inline-comment posting.
+          head_sha=$(gh pr view ${{ inputs.pr_number }} --json headRefOid --jq '.headRefOid')
+          echo "HEAD_SHA=$head_sha" >> "$GITHUB_ENV"
 
       - name: Build prompt file
         run: |
@@ -76,6 +79,11 @@ jobs:
           OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
           DEEPSEEK_API_KEY:  ${{ secrets.DEEPSEEK_API_KEY }}
           GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
+          # ── env vars pi can read via bash to post inline comments ──────────
+          GH_TOKEN:          ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER:         ${{ inputs.pr_number }}
+          REPO:              ${{ github.repository }}
+          # HEAD_SHA was set in the previous step via $GITHUB_ENV
         run: |
           target='${{ inputs.target }}'
           provider="${target%%/*}"
@@ -84,7 +92,7 @@ jobs:
             -p @./.pi-review-prompt.tmp.txt \
             --provider "$provider" \
             --model    "$model" \
-            --tools    read,grep,find,ls \
+            --tools    read,grep,find,ls,bash \
             --thinking high \
             --no-session \
             --no-extensions \
